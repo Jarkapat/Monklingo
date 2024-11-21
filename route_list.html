@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Two Separate Routes with Sequential Movement</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+  <style>
+    #map { height: 500px; width: 100%; }
+  </style>
+</head>
+<body>
+  <h1>Map with Sequential Routes</h1>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+
+  <script>
+    // สร้างแผนที่และตั้งค่าพิกัดเริ่มต้น
+    const map = L.map('map').setView([15.12, 104.89], 13);
+
+    // เพิ่ม Tile Layer จาก OpenStreetMap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // ฟังก์ชันเคลื่อนที่ marker ตามพิกัดที่กำหนด
+    function animateMarker(route, marker, callback) {
+      let index = 0;
+
+      function move() {
+        if (index < route.length - 1) {
+          index++;
+          marker.setLatLng(route[index]); // ปรับตำแหน่ง marker
+          map.panTo(route[index]);
+          setTimeout(move, 300); // ปรับความเร็วของ marker
+        } else {
+          callback(); // เรียก callback เมื่อเคลื่อนที่เสร็จสิ้น
+        }
+      }
+
+      move(); // เริ่มต้นการเคลื่อนที่
+    }
+
+    // Marker ที่จะเคลื่อนที่ตามเส้นทาง
+    let marker = L.marker([15.122747580948031, 104.8986129277849]).addTo(map).bindPopup("Monk locations").openPopup();
+
+    // เส้นทางที่ 1
+    const route1Control = L.Routing.control({
+      waypoints: [
+        L.latLng(15.120971304203069, 104.88921684175969), // จุดเริ่มต้นของเส้นทางที่ 1
+        L.latLng(15.122721558006065, 104.89844579770359) // จุดสิ้นสุดของเส้นทางที่ 1 
+      ],
+      routeWhileDragging: false,
+      createMarker: function() { return null; } // ไม่สร้าง marker อัตโนมัติ
+    }).addTo(map);
+
+    // เมื่อเส้นทางที่ 1 ถูกสร้างเสร็จแล้ว เริ่มเคลื่อนที่ marker
+    route1Control.on('routesfound', function(e) {
+      const route1 = e.routes[0].coordinates;
+      animateMarker(route1, marker, startRoute2); // เรียก startRoute2 เมื่อเส้นทางที่ 1 เสร็จสิ้น
+    });
+
+    // ฟังก์ชันเริ่มต้นเส้นทางที่ 2
+    function startRoute2() {
+      marker.bindPopup("Monk locations").openPopup();
+
+      const route2Control = L.Routing.control({
+        waypoints: [
+          L.latLng(15.122727, 104.898613),
+          L.latLng(15.112598, 104.900621),
+          L.latLng(15.120971304203069, 104.88921684175969)  // จุดสิ้นสุดของเส้นทางที่ 2
+        ],
+        routeWhileDragging: false,
+        createMarker: function() { return null; } // ไม่สร้าง marker อัตโนมัติ
+      }).addTo(map);
+
+      // เมื่อเส้นทางที่ 2 ถูกสร้างเสร็จแล้ว เริ่มเคลื่อนที่ marker
+      route2Control.on('routesfound', function(e) {
+        const route2 = e.routes[0].coordinates;
+        animateMarker(route2, marker, () => marker.bindPopup("Monk locations").openPopup());
+      });
+    }
+  </script>
+</body>
+</html>
