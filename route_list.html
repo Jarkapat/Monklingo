@@ -3,7 +3,7 @@
 
 <div class="flex flex-col ml-10">
   <h1 class="text-left text-2xl my-4 noto">ข้อมูลเส้นทาง</h1>
-  <div id="mapA" class="w-full sm:w-[1200px] h-[400px] border border-black mb-20"></div>
+  <div id="mapA" class="w-full sm:w-[1200px] h-[600px] border border-black mb-20"></div>
   <div id="mapB" class="w-full sm:w-[1200px] h-[400px] border border-black mb-20"></div>
   <div id="mapC" class="w-full sm:w-[1200px] h-[400px] border border-black mb-20"></div>
 </div>
@@ -16,33 +16,37 @@
     A: {
       start: [15.120971, 104.889216],
       waypoints: [
-        { lat: 15.1215, lng: 104.8950, speed: 200 },
-        { lat: 15.1220, lng: 104.8970, speed: 400 }
+        { lat: 15.1215, lng: 104.8950, speed: 500 },
+        { lat: 15.1220, lng: 104.8970, speed: 300 }
       ],
       end: [15.120971, 104.889216],
-      markers: [
-        { lat: 15.1210, lng: 104.8920, name: "ตลาดเช้า" },
-        { lat: 15.1223, lng: 104.8965, name: "วัดพระใหญ่" }
+      checkpoints: [
+        { lat: 15.1210, lng: 104.8920, name: "ตลาดเช้า", reached: false },
+        { lat: 15.1223, lng: 104.8965, name: "วัดพระใหญ่", reached: false }
       ]
     },
     B: {
       start: [15.1300, 104.9000],
       waypoints: [
-        { lat: 15.1310, lng: 104.9050, speed: 300 }
+        { lat: 15.1310, lng: 104.9050, speed: 400 },
+        { lat: 15.1320, lng: 104.9100, speed: 600 }
       ],
-      end: [15.1320, 104.9100],
-      markers: [
-        { lat: 15.1315, lng: 104.9070, name: "สวนสาธารณะ" }
+      end: [15.1330, 104.9150],
+      checkpoints: [
+        { lat: 15.1305, lng: 104.9025, name: "จุดพักน้ำ", reached: false },
+        { lat: 15.1325, lng: 104.9125, name: "วัดกลางน้ำ", reached: false }
       ]
     },
     C: {
       start: [15.1400, 104.9200],
       waypoints: [
-        { lat: 15.1410, lng: 104.9250, speed: 500 }
+        { lat: 15.1410, lng: 104.9250, speed: 300 },
+        { lat: 15.1420, lng: 104.9280, speed: 500 }
       ],
-      end: [15.1420, 104.9300],
-      markers: [
-        { lat: 15.1415, lng: 104.9280, name: "หอสมุดใหญ่" }
+      end: [15.1430, 104.9300],
+      checkpoints: [
+        { lat: 15.1405, lng: 104.9225, name: "ตลาดใหม่", reached: false },
+        { lat: 15.1425, lng: 104.9295, name: "วัดใหญ่", reached: false }
       ]
     }
   };
@@ -59,11 +63,20 @@
     // Marker สำหรับการเคลื่อนที่
     const marker = L.marker(routeData.start).addTo(map);
 
-    // เพิ่มจุด Marker ที่มีชื่อ
-    routeData.markers.forEach(markerInfo => {
-      L.marker([markerInfo.lat, markerInfo.lng])
+    // เพิ่มจุด Checkpoint บนแผนที่
+    routeData.checkpoints.forEach(checkpoint => {
+      const checkpointMarker = L.marker([checkpoint.lat, checkpoint.lng], {
+        icon: L.icon({
+          iconUrl: 'https://leafletjs.com/examples/custom-icons/leaf-red.png',
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34]
+        })
+      })
         .addTo(map)
-        .bindPopup(markerInfo.name);
+        .bindPopup(`${checkpoint.name} (ยังไม่ถึง)`);
+
+      checkpoint.marker = checkpointMarker;
     });
 
     // สร้างเส้นทาง
@@ -73,62 +86,50 @@
       L.latLng(routeData.end)
     ];
 
-    const speeds = routeData.waypoints.map(point => point.speed); // ดึงข้อมูลความเร็ว
+    const speeds = routeData.waypoints.map(point => point.speed);
 
-    const routeControl = L.Routing.control({
+    L.Routing.control({
       waypoints: waypoints,
       routeWhileDragging: false,
-      show: false,
       createMarker: function () { return null; } // ไม่สร้าง marker อัตโนมัติ
-    }).addTo(map);
-
-    // เมื่อเส้นทางถูกสร้างสำเร็จ
-    routeControl.on('routesfound', function (e) {
-      const coordinates = e.routes[0].coordinates.map(coord => [coord.lat, coord.lng]);
-
-      // ตรวจสอบเวลาเพื่อเริ่มเดินอัตโนมัติ
-    //   scheduleDailyMovement(coordinates, marker, speeds);
-    // });
-      animateMarker(coordinates, marker, speeds);
-    });
-
+    })
+      .on('routesfound', function (e) {
+        const coordinates = e.routes[0].coordinates.map(coord => [coord.lat, coord.lng]);
+        animateMarker(coordinates, marker, speeds, routeData.checkpoints);
+      })
+      .addTo(map);
   }
-    
-  // ฟังก์ชันเคลื่อนที่ marker
-  function animateMarker(coordinates, marker, speeds) {
+
+  // ฟังก์ชันเคลื่อนที่ marker พร้อมอัปเดต Checkpoint
+  function animateMarker(coordinates, marker, speeds, checkpoints) {
     let index = 0;
 
     function move() {
       if (index < coordinates.length - 1) {
         index++;
-        marker.setLatLng(coordinates[index]); // อัปเดตตำแหน่ง marker
-        setTimeout(move, speeds[index - 1] || 300); // ใช้ความเร็วของช่วงนั้น
+        marker.setLatLng(coordinates[index]);
+
+        // ตรวจสอบว่า marker ถึง Checkpoint หรือยัง
+        checkpoints.forEach(checkpoint => {
+          const distance = L.latLng(checkpoint.lat, checkpoint.lng).distanceTo(marker.getLatLng());
+          if (distance < 20 && !checkpoint.reached) {
+            checkpoint.reached = true;
+            checkpoint.marker.bindPopup(`${checkpoint.name} (ถึงแล้ว)`).openPopup();
+          }
+        });
+
+        setTimeout(move, speeds[index - 1] || 300);
       }
     }
 
     move();
   }
 
-  // ฟังก์ชันตั้งเวลาเริ่มเดินทุก 6 โมงเช้า
-  // function scheduleDailyMovement(coordinates, marker, speeds) {
-  //   function checkTimeAndStart() {
-  //     const now = new Date();
-  //     const bangkokTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Bangkok" }));
-
-  //     if (bangkokTime.getHours() === 6 && bangkokTime.getMinutes() === 0) {
-  //       // เริ่มเคลื่อนที่ตอน 6 โมงเช้า
-  //       animateMarker(coordinates, marker, speeds);
-  //     }
-  //   }
-
-  //   // ตรวจสอบเวลาในทุกวินาที
-  //   setInterval(checkTimeAndStart, 1000);
-  // }
-
   // เรียกใช้ฟังก์ชันสำหรับแต่ละแผนที่
   initializeMap('mapA', routesData.A);
   initializeMap('mapB', routesData.B);
   initializeMap('mapC', routesData.C);
 </script>
+
 
 {% endblock %}
