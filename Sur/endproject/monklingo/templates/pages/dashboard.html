@@ -1,0 +1,146 @@
+{% extends 'base/base_user.html' %}
+
+{% block main %}
+<style>
+    /* การ์ดของ Dashboard */
+    .dashboard-card {
+        background-color: #fffbe6; /* สีพื้นหลังเหลืองอ่อน */
+        border-radius: 12px; /* มุมโค้งมน */
+        padding: 1.5rem;
+        text-align: center;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* เงา */
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+
+    .dashboard-card:hover {
+        transform: translateY(-4px); /* ยกการ์ดขึ้นเล็กน้อย */
+        box-shadow: 0 8px 10px rgba(0, 0, 0, 0.15); /* เพิ่มเงา */
+    }
+
+    /* ตารางข้อมูล */
+    table {
+        width: 100%; /* ปรับความกว้างของตาราง */
+        border-collapse: collapse; /* รวมขอบตาราง */
+        font-family: 'Arial', sans-serif; /* กำหนดฟอนต์ */
+    }
+
+    /* สไตล์สำหรับแถวหัวตาราง */
+    th {
+        background-color: #f9e58d; /* สีพื้นหลังหัวตาราง */
+        font-weight: bold; /* กำหนดให้ตัวอักษรหนา */
+        color: #333; /* สีตัวอักษร */
+        padding: 12px 20px; /* เพิ่มระยะห่างจากขอบ */
+        text-align: left; /* จัดตัวอักษรไปทางซ้าย */
+    }
+
+    /* เปลี่ยนสีแถวเมื่อผู้ใช้ชี้ */
+    tr:hover {
+        background-color: #f1f1f1; /* เปลี่ยนสีพื้นหลังเมื่อชี้เมาส์ */
+    }
+
+    /* ปรับแต่งเฉพาะการแสดงผลในเซลล์ */
+    td {
+        color: #555; /* สีตัวอักษรในเซลล์ */
+        padding: 12px 20px; /* เพิ่มระยะห่างจากขอบ */
+        border-bottom: 1px solid #ddd; /* ขอบล่างของแต่ละเซลล์ */
+    }
+    tbody tr:nth-child(odd) {
+        background-color: #fdf9f0; /* สีพื้นหลังสำหรับแถวที่เป็นเลขคี่ */
+    }
+
+    tbody tr:nth-child(even) {
+        background-color: #ffffff; /* สีพื้นหลังสำหรับแถวที่เป็นเลขคู่ */
+    }
+</style>
+
+<div class=" mx-auto py-6 px-4 ml-10">
+    <!-- แถวที่ 1: การ์ด -->
+    <div class="grid grid-cols-6 gap-6 mb-6 ">
+        <!-- การ์ด: ผู้ใช้งานวันนี้ -->
+        <div class="dashboard-card col-start-1 col-end-4">
+            <p class="text-lg font-semibold">ผู้ใช้งานวันนี้:</p>
+            <h1 class="text-5xl font-bold mt-2 text-yellow-600">{{ users_today }} คน</h1>
+        </div>
+
+        <!-- การ์ด: ผู้ที่ถ่ายรูปวันนี้ -->
+        <div class="dashboard-card col-start-4 col-end-7">
+            <p class="text-lg font-semibold">ผู้ที่ถ่ายรูปวันนี้:</p>
+            <h1 class="text-5xl font-bold mt-2 text-yellow-600">{{ photos_today }} คน</h1>
+        </div>
+    </div>
+
+    <!-- แถวที่ 2: กราฟ -->
+    <div class="bg-white shadow-md rounded-lg p-6 mb-6">
+        <h2 class="text-lg font-bold mb-4">สรุปผู้ใช้งานประจำเดือน</h2>
+        <canvas id="userChart" width="400" height="200"></canvas>
+    </div>
+
+    <!-- แถวที่ 3: ตารางข้อมูล -->
+    <div class="bg-white p-6 noto">
+        <h2 class="text-lg font-bold mb-4">ผู้ส่งรูปการตักบาตร</h2>
+        <div class="overflow-x-auto bg-yellow-100 rounded-lg shadow-lg ">
+        <table class="w-full table-auto">
+            <thead>
+                <tr class="bg-yellow-200 noto">
+                    <th class="p-4 border-b">ชื่อผู้ใช้</th>
+                    <th class="p-4 border-b">เวลา</th>
+                    <th class="p-4 border-b">วันที่</th>
+                    <th class="p-4 border-b">รูปภาพ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for image in user_images %}
+                <tr class="{% cycle 'hover:bg-yellow-50' 'noto' %}">
+                    <td class="p-4 border-b noto">{{ image.user.username }}</td>
+                    <td class="p-4 border-b noto">{{ image.uploaded_at|time:"H:i" }}</td>
+                    <td class="p-4 border-b noto">{{ image.uploaded_at|date:"d/m/Y" }}</td>
+                    <td class="p-4 border-b text-center noto">
+                        <a href="{{ image.image.url }}" class="text-blue-500 hover:underline" target="_blank">ดู</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+{% load static %}
+<script src="{% static 'js/chart.js' %}"></script>
+
+<script>
+    const ctx = document.getElementById('userChart').getContext('2d');
+    const photoSummary = "{{ photo_summary|safe }}"; // ต้องตรวจสอบว่า photo_summary ถูกต้อง
+
+    // แปลงข้อมูล photoSummary เป็น array ของ labels และ data
+    const labels = photoSummary.map(item => item.uploaded_date);
+    const data = photoSummary.map(item => item.total_photos);
+
+    console.log(labels); // Debug: แสดง labels ใน console ของเบราว์เซอร์
+    console.log(data);   // Debug: แสดง data ใน console ของเบราว์เซอร์
+
+    const userChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'จำนวนรูปที่ถ่าย',
+                data: data,
+                borderColor: 'rgba(75, 192, 192, 1)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                tension: 0.4,
+                fill: true,
+            }],
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                },
+            },
+        },
+    });
+</script>
+{% endblock %}

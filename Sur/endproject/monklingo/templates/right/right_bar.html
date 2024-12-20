@@ -1,0 +1,184 @@
+<style>
+#uploadModal {
+    z-index: 1000; /* ให้อยู่ด้านบน */
+    position: fixed; /* ป้องกันการเลื่อน */
+}
+</style>
+<div id="alertContainer" class="fixed top-4 left-1/2 transform -translate-x-1/2 hidden z-50">
+    <div id="alertMessage" class="p-4 rounded shadow-lg text-white"></div>
+</div>
+<aside class="w-80 bg-white  fixed top-0 right-10 h-full mt-10 p-4">
+    <div class="flex justify-between items-center mb-6">
+        <span class="flex items-center text-xl font-bold">
+            🏆 <span class="ml-2">5</span>
+        </span>
+        <span class="flex items-center text-xl font-bold">
+            🔥 <span class="ml-2">15 วัน</span>
+        </span>
+    </div>
+
+    <div class="bg-yellow-100 rounded-lg p-4 mb-6">
+        <h3 class="text-lg font-bold mb-2">อันดับ</h3>
+        <p class="text-gray-700">คุณอยู่ที่อันดับ #5</p>
+        <p class="text-sm text-gray-600">ตักบาตรเพิ่มขึ้นเพื่อเลื่อนระดับของคุณ...</p>
+    </div>
+
+    <div class="bg-yellow-100 rounded-lg p-4">
+        <h3 class="text-lg font-bold mb-2">กิจกรรม</h3>
+        <p class="text-gray-700">ในขณะนี้ยังไม่มีกิจกรรมอะไร...</p>
+    </div>
+
+  
+   <button id="openModal" class="w-64 bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 mt-10 ml-5">
+    ถ่ายรูปการตักบาตรของคุณ
+</button>
+
+<!-- ป๊อปอัพสำหรับถ่ายและอัพโหลดรูป -->
+<div id="uploadModal" class="hidden fixed inset-1  justify-items-end ">
+    <div class="bg-gray-100 p-6 rounded-lg shadow-lg w-96 border ">
+        <h3 class="text-xl font-bold mb-4">ถ่ายรูปการตักบาตร</h3>
+
+        <!-- แสดงกล้อง -->
+        <video id="video" autoplay class="w-full h-64 bg-gray-300 rounded-lg mb-4"></video>
+        <canvas id="canvas" class="hidden"></canvas>
+
+        <!-- ปุ่มควบคุม -->
+        <div class="flex justify-between">
+            <button id="takePhoto" class="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600">
+                ถ่ายรูป
+            </button>
+            <button id="closeModal" class="bg-gray-300 text-black py-2 px-4 rounded-lg">
+                ยกเลิก
+            </button>
+        </div>
+
+        <!-- ฟอร์มสำหรับอัพโหลด -->
+        <form action="{% url 'upload_image' %}" method="POST" enctype="multipart/form-data" class="mt-4 hidden" id="uploadForm">
+            {% csrf_token %}
+            <input type="hidden" name="image" id="imageData">
+            <button type="submit" class="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 w-full">
+                อัพโหลดรูป
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    const openModal = document.getElementById('openModal');
+    const closeModal = document.getElementById('closeModal');
+    const uploadModal = document.getElementById('uploadModal');
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const takePhoto = document.getElementById('takePhoto');
+    const uploadForm = document.getElementById('uploadForm');
+    const imageDataInput = document.getElementById('imageData');
+    const alertContainer = document.getElementById('alertContainer');
+    const alertMessage = document.getElementById('alertMessage');
+
+    // เปิดกล้อง
+    openModal.addEventListener('click', async () => {
+        uploadModal.classList.remove('hidden');
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            video.srcObject = stream;
+        } catch (err) {
+            alert('ไม่สามารถเข้าถึงกล้องได้');
+            console.error('Error accessing camera:', err);
+        }
+    });
+
+    // ปิดกล้อง
+    closeModal.addEventListener('click', () => {
+        uploadModal.classList.add('hidden');
+        const stream = video.srcObject;
+        if (stream) {
+            const tracks = stream.getTracks();
+            tracks.forEach(track => track.stop());
+            video.srcObject = null;
+        }
+    });
+
+    // ถ่ายรูป
+    takePhoto.addEventListener('click', () => {
+        const context = canvas.getContext('2d');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // แปลงรูปเป็น Base64
+        const imageData = canvas.toDataURL('image/png');
+        imageDataInput.value = imageData;
+
+        // แสดงฟอร์มอัพโหลด
+        uploadForm.classList.remove('hidden');
+        showAlert('ถ่ายรูปสำเร็จ! กดอัพโหลดเพื่อบันทึก', 'success');
+    });
+
+    // ฟังก์ชันสำหรับแสดงข้อความแจ้งเตือน
+    function showAlert(message, type = 'success') {
+        // ตั้งค่าข้อความ
+        alertMessage.textContent = message;
+
+        // เปลี่ยนสีพื้นหลังตามประเภทข้อความ
+        if (type === 'success') {
+            alertMessage.className = 'bg-green-500 p-4 rounded shadow-lg text-white';
+        } else if (type === 'error') {
+            alertMessage.className = 'bg-red-500 p-4 rounded shadow-lg text-white';
+        }
+
+        // แสดงข้อความ
+        alertContainer.classList.remove('hidden');
+
+        // ซ่อนข้อความอัตโนมัติหลัง 3 วินาที
+        setTimeout(() => {
+            alertContainer.classList.add('hidden');
+        }, 3000);
+    }
+
+    // อัพโหลดรูปผ่าน AJAX
+    uploadForm.addEventListener('submit', async (e) => {
+    e.preventDefault(); // หยุดการ Refresh หน้า
+    const formData = new FormData(uploadForm);
+
+    try {
+        const response = await fetch("{% url 'upload_image' %}", {
+            method: "POST",
+            body: formData,
+            headers: {
+                'X-CSRFToken': "{{ csrf_token }}"
+            }
+        });
+
+        if (!response.ok) {
+            const errorResult = await response.json();
+            showAlert(errorResult.message || "เกิดข้อผิดพลาด", 'error');
+            return;
+        }
+
+        const result = await response.json();
+        if (result.status === "success") {
+            showAlert(result.message, 'success'); // แสดงข้อความสำเร็จ
+            uploadModal.classList.add('hidden'); // ปิดป๊อปอัพ
+            const stream = video.srcObject; // ปิดกล้องเมื่อปิดป๊อปอัพ
+            if (stream) {
+                const tracks = stream.getTracks();
+                tracks.forEach(track => track.stop());
+                video.srcObject = null;
+            }
+            disableUploadButton(); // ปิดการอัพโหลดหลังอัพโหลดสำเร็จ
+        } else {
+            showAlert(result.message, 'error'); // แสดงข้อความข้อผิดพลาด
+        }
+    } catch (error) {
+        showAlert("เกิดข้อผิดพลาดในการอัพโหลดรูป", 'error');
+        console.error("Error uploading image:", error);
+    }
+});
+
+// ปิดการอัพโหลดหลังจากกดอัพโหลดสำเร็จ
+function disableUploadButton() {
+    openModal.disabled = true; // ปิดปุ่มอัพโหลด
+    openModal.classList.add('opacity-50', 'cursor-not-allowed'); // เพิ่มสไตล์ให้ดูว่าปิดอยู่
+    showAlert("คุณสามารถอัพโหลดรูปได้เพียงวันละครั้ง", "info");
+}
+</script>

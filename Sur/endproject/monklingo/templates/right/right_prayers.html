@@ -1,0 +1,111 @@
+<aside class="w-80 bg-white  fixed top-0 right-10 h-full mt-10 p-4">
+    <div class="flex justify-between items-center mb-6">
+        <span class="flex items-center text-xl font-bold">
+            🏆 <span class="ml-2">5</span>
+        </span>
+        <span class="flex items-center text-xl font-bold">
+            🔥 <span class="ml-2">15 วัน</span>
+        </span>
+    </div>
+
+    <div class="bg-yellow-100 rounded-lg p-4 mb-6">
+        <h3 class="text-lg font-bold mb-2">อันดับ</h3>
+        <p class="text-gray-700">คุณอยู่ที่อันดับ #5</p>
+        <p class="text-sm text-gray-600">ตักบาตรเพิ่มขึ้นเพื่อเลื่อนระดับของคุณ...</p>
+    </div>
+
+    <div class="bg-yellow-100 rounded-lg p-4">
+        <h3 class="text-lg font-bold mb-2">กิจกรรม</h3>
+        <p class="text-gray-700">ในขณะนี้ยังไม่มีกิจกรรมอะไร...</p>
+    </div>
+
+    {% if request.user.is_superuser %}
+    <div class="bg-yellow-500 rounded-lg text-white text-center py-3 cursor-pointer mt-6 hover:bg-yellow-600"
+        onclick="openPostPopup()">
+        สร้างบทสวด
+    </div>
+    {% endif %}
+</aside>
+
+<!-- ป๊อปอัปสำหรับสร้างโพสต์ -->
+<div id="postPopup" class="hidden fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
+<div class="bg-white p-6 rounded-lg shadow-lg w-96">
+   <h2 class="text-2xl font-bold mb-4">สร้างโพสต์บทสวด</h2>
+   <form id="createPostForm" enctype="multipart/form-data">
+        {% csrf_token %}
+       <div class="mb-4">
+           <label for="heading" class="block text-gray-700 font-bold mb-2">หัวข้อบทสวด</label>
+           <input type="text" id="heading" name="heading" class="w-full border-gray-300 rounded-md p-2 border" required>
+       </div>
+       <div class="mb-4">
+           <label for="content" class="block text-gray-700 font-bold mb-2">เนื้อหาบทสวด</label>
+           <textarea id="content" name="content" rows="4" class="w-full border-gray-300 rounded-md p-2 border" required></textarea>
+       </div>
+       <div class="mb-4">
+           <label for="url" class="block text-gray-700 font-bold mb-2">ลิงก์</label>
+           <input type="url" id="url" name="url" class="w-full border-gray-300 rounded-md p-2 border">
+       </div>
+       <div class="flex justify-end">
+           <button type="button" onclick="closePostPopup()" class="bg-gray-400 text-white py-2 px-4 rounded-lg hover:bg-gray-500 mr-2">ยกเลิก</button>
+           <button type="submit" class="bg-yellow-500 text-white py-2 px-4 rounded-lg hover:bg-yellow-600">บันทึก</button>
+       </div>
+   </form>
+</div>
+</div>
+
+<script>
+// เปิดป๊อปอัป
+function openPostPopup() {
+   document.getElementById("postPopup").classList.remove("hidden");
+}
+
+// ปิดป๊อปอัป
+function closePostPopup() {
+   document.getElementById("postPopup").classList.add("hidden");
+}
+
+document.getElementById("createPostForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+
+    fetch("{% url 'create_prayers_post' %}", {
+        method: "POST",
+        body: formData,
+        headers: {
+            "X-CSRFToken": "{{ csrf_token }}",
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.message) {
+            alert(data.message);
+            window.location.href = data.redirect_url; // ใช้ URL จากเซิร์ฟเวอร์เพื่อ Redirect
+        } else if (data.error) {
+            alert(data.error);
+        }
+    })
+    .catch(error => {
+        console.error("Error:", error);
+        alert("เกิดข้อผิดพลาด กรุณาลองใหม่");
+    });
+});
+
+
+// ฟังก์ชันดึง CSRF token จากคุกกี้
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+

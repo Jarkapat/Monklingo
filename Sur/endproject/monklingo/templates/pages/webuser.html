@@ -1,0 +1,111 @@
+{%extends  'base/base_user.html'%}
+{%block main%}
+<style>
+    table {
+        width: 100%; /* ปรับความกว้างของตาราง */
+        border-collapse: collapse; /* รวมขอบตาราง */
+        font-family: 'Arial', sans-serif; /* กำหนดฟอนต์ */
+    }
+
+    /* สไตล์สำหรับแถวหัวตาราง */
+    th {
+        background-color: #f9e58d; /* สีพื้นหลังหัวตาราง */
+        font-weight: bold; /* กำหนดให้ตัวอักษรหนา */
+        color: #333; /* สีตัวอักษร */
+        padding: 12px 20px; /* เพิ่มระยะห่างจากขอบ */
+        text-align: left; /* จัดตัวอักษรไปทางซ้าย */
+    }
+
+    /* เปลี่ยนสีแถวเมื่อผู้ใช้ชี้ */
+    tr:hover {
+        background-color: #f1f1f1; /* เปลี่ยนสีพื้นหลังเมื่อชี้เมาส์ */
+    }
+
+    /* ปรับแต่งเฉพาะการแสดงผลในเซลล์ */
+    td {
+        color: #555; /* สีตัวอักษรในเซลล์ */
+        padding: 12px 20px; /* เพิ่มระยะห่างจากขอบ */
+        border-bottom: 1px solid #ddd; /* ขอบล่างของแต่ละเซลล์ */
+    }
+    tbody tr:nth-child(odd) {
+        background-color: #fdf9f0; /* สีพื้นหลังสำหรับแถวที่เป็นเลขคี่ */
+    }
+
+    tbody tr:nth-child(even) {
+        background-color: #ffffff; /* สีพื้นหลังสำหรับแถวที่เป็นเลขคู่ */
+    }
+</style>
+<main class="flex-grow p-10 bg-white">
+    <div class="max-w-6xl mx-auto bg-white ">
+        <h1 class="text-4xl font-bold mb-8 noto text-center">ผู้ใช้งานในระบบ</h1>
+
+        <!-- ตารางข้อมูลผู้ใช้ -->
+        <div class="overflow-x-auto bg-yellow-100 rounded-lg shadow-lg ">
+            <table class="w-full table-auto">
+                <thead>
+                    <tr class="bg-yellow-200 noto">
+                        <th class="px-6 py-3 border-b text-sm font-semibold text-left">ชื่อผู้ใช้</th>
+                        <th class="px-6 py-3 border-b text-sm font-semibold text-left">อีเมล</th>
+                        <th class="px-6 py-3 border-b text-sm font-semibold text-left">จำนวนรูปภาพ</th>
+                        <th class="px-6 py-3 border-b text-sm font-semibold text-left">เข้าระบบล่าสุด</th>
+                        <th class="px-6 py-3 border-b text-sm font-semibold text-left">แก้ไข</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in users_with_image_count %}
+                    <tr class="text-sm  hover:bg-yellow-50 noto">
+                        <td class="px-6 py-4 border-b">{{ entry.user.username }}</td>
+                        <td class="px-6 py-4 border-b">{{ entry.user.email }}</td>
+                        <td class="px-6 py-4 border-b">{{ entry.image_count }}</td>
+                        <td class="px-6 py-4 border-b">{{ entry.user.last_login|date:"d F Y" }}</td>
+                        <td class="px-6 py-4 border-b cursor-pointer">
+                            <a onclick="deleteUser('{{ entry.user.id }}', '{{ entry.user.username }}')" class="text-red-500 hover:text-red-700">ลบ</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-4">ไม่มีข้อมูลผู้ใช้งาน</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+<script>
+    function deleteUser(userId,userName) {
+        if (confirm("คุณต้องการลบผู้ใช้นี้หรือไม่?" + userName)) {
+            fetch(`/delete_user/${userId}/`, {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": getCookie("csrftoken"),
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    alert(data.message);
+                    location.reload();  // รีโหลดหน้าเว็บหลังจากลบสำเร็จ
+                }
+            })
+            .catch(error => console.error("Error:", error));
+        }
+    }
+
+    // ฟังก์ชันดึง CSRF token จากคุกกี้
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+{%endblock%}

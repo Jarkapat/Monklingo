@@ -1,0 +1,9 @@
+django 
+djongo
+django-tailwind
+gdal 
+geos
+postgresql
+postgis
+folium
+django-leaflet

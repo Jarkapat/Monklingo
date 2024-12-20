@@ -1,0 +1,65 @@
+<style>
+    .icon-large {
+        font-size: 50px; /* ปรับขนาดไอคอน */ /* เปลี่ยนสีไอคอน */
+    }
+    .icon-medium {
+        font-size: 30px; /* ปรับขนาดไอคอน */
+    }
+</style>
+<div class="border border-gray-400 fixed h-full">
+    <aside class="w-[250px] bg-white h-full p-4 shadow-md">
+        <a href="/routes">
+            <h2 class="text-4xl font-bold text-[#E2A226] mb-8 text-center baloo-bhai mt-5">Monklingo</h2>
+        </a>
+        <ul class="space-y-4">
+            <!-- เส้นทาง -->
+            <a href="/routes" class="flex items-center text-black hover:text-yellow-500">
+                <i class="fi fi-rr-compass-alt icon-medium mr-2"></i>
+                <span class="text-black noto text-2xl hover:text-yellow-500">เส้นทาง</span>
+            </a>
+
+            <!-- ตารางคะแนน -->
+            <a href="/ranking" class="flex items-center text-black hover:text-yellow-500">
+                <i class="fi fi-rr-trophy icon-medium mr-2"></i>
+                <span class="text-black noto text-2xl hover:text-yellow-500">ตารางคะแนน</span>
+            </a>
+
+            <!-- ข่าวสาร -->
+            <a href="/news" class="flex items-center text-black hover:text-yellow-500">
+                <i class="fi fi-rr-newspaper icon-medium mr-2"></i>
+                <span class="text-black noto text-2xl hover:text-yellow-500">ข่าวสาร</span>
+            </a>
+
+            <!-- บทสวด -->
+            <a href="/prayers" class="flex items-center text-black hover:text-yellow-500">
+                <i class="fi fi-rr-book-alt icon-medium mr-2"></i>
+                <span class="text-black noto text-2xl hover:text-yellow-500">บทสวด</span>
+            </a>
+
+            <!-- แชท -->
+            <a href="/chat" class="flex items-center text-black hover:text-yellow-500">
+                <i class="fi fi-rr-beacon icon-medium mr-2"></i>
+                <span class="text-black noto text-2xl hover:text-yellow-500">แชท</span>
+            </a>
+
+            <!-- เมนูเพิ่มเติมสำหรับ Superuser -->
+            {% if request.user.is_superuser %}
+            <a href="/user" class="flex items-center text-black hover:text-yellow-500">
+                <i class="fi fi-rs-user icon-medium mr-2"></i>
+                <span class="text-black noto text-2xl hover:text-yellow-500">ผู้ใช้งาน</span>
+            </a>
+
+            <a href="/dashboard" class="flex items-center text-black hover:text-yellow-500">
+                <i class="fi fi-rs-chart-pie icon-medium mr-2"></i>
+                <span class="text-black noto text-2xl hover:text-yellow-500">แดชบอร์ด</span>
+            </a>
+            {% endif %}
+
+            <!-- ตั้งค่า -->
+            <a href="/setting" class="flex items-center text-black hover:text-yellow-500">
+                <i class="fi fi-rr-settings icon-medium mr-2"></i>
+                <span class="text-black noto text-2xl hover:text-yellow-500">ตั้งค่า</span>
+            </a>
+        </ul>
+    </aside>
+</div>

@@ -1,0 +1,51 @@
+{% extends 'base/base_news.html' %}
+{% block main %}
+<main class="flex-grow p-6 bg-white">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold  mb-6 noto">แก้ไขโพสต์ข่าวสาร</h1>
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label for="heading" class="block text-gray-700 font-bold mb-2">หัวข้อข่าว</label>
+                <input type="text" id="heading" name="heading" value="{{ post.heading }}" 
+                       class="w-full border-gray-300 rounded-md p-2 border" required>
+            </div>
+            <div class="mb-4">
+                <label for="content" class="block text-gray-700 font-bold mb-2">เนื้อหาข่าว</label>
+                <textarea id="content" name="content" rows="4" 
+                          class="w-full border-gray-300 rounded-md p-2 border" required>{{ post.content }}</textarea>
+            </div>
+            <div class="mb-4">
+                <label for="post_type" class="block text-gray-700 font-bold mb-2">ประเภทโพสต์</label>
+                <select id="post_type" name="post_type" class="w-full border-gray-300 rounded-md p-2 border">
+                    <option value="news" {% if post.post_type == "news" %}selected{% endif %}>ข่าว</option>
+                    <option value="announcement" {% if post.post_type == "announcement" %}selected{% endif %}>ประกาศ</option>
+                    <option value="event" {% if post.post_type == "event" %}selected{% endif %}>กิจกรรม</option>
+                </select>
+            </div>
+            <div class="mb-4">
+                <label for="img" class="block text-gray-700 font-bold mb-2">รูปภาพ</label>
+                <input type="file" id="img" name="img" class="w-full">
+                {% if post.img %}
+                <img src="{{ post.img.url }}" alt="{{ post.heading }}" class="mt-4 w-32 h-32 object-cover rounded-md">
+                {% endif %}
+            </div>
+            <div class="mb-4">
+                <label for="url" class="block text-gray-700 font-bold mb-2">ลิงก์</label>
+                <input type="url" id="url" name="url" value="{{ post.url }}" 
+                       class="w-full border-gray-300 rounded-md p-2 border">
+            </div>
+            <div class="flex justify-end">
+                <a href="{% url 'news_list' %}" 
+                   class="bg-gray-400 text-white py-2 px-4 rounded-lg hover:bg-gray-500 mr-2">
+                   ยกเลิก
+                </a>
+                <button type="submit" 
+                        class="bg-yellow-500 text-white py-2 px-4 rounded-lg hover:bg-yellow-600">
+                        บันทึก
+                </button>
+            </div>
+        </form>
+    </div>
+</main>
+{% endblock %}

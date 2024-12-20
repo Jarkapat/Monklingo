@@ -1,0 +1,36 @@
+{% extends 'base/base_prayers.html' %}
+{% block main %}
+<main class="flex-grow p-6 bg-white">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold  mb-6 noto">แก้ไขโพสต์บทสวด</h1>
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label for="heading" class="block text-gray-700 font-bold mb-2">หัวข้อบทสวด</label>
+                <input type="text" id="heading" name="heading" value="{{ post.heading }}" 
+                       class="w-full border-gray-300 rounded-md p-2 border" required>
+            </div>
+            <div class="mb-4">
+                <label for="content" class="block text-gray-700 font-bold mb-2">เนื้อหาบทสวด</label>
+                <textarea id="content" name="content" rows="4" 
+                          class="w-full border-gray-300 rounded-md p-2 border" required>{{ post.content }}</textarea>
+            </div>
+            <div class="mb-4">
+                <label for="url" class="block text-gray-700 font-bold mb-2">ลิงก์</label>
+                <input type="url" id="url" name="url" value="{{ post.url }}" 
+                       class="w-full border-gray-300 rounded-md p-2 border">
+            </div>
+            <div class="flex justify-end">
+                <a href="{% url 'prayers_list' %}" 
+                   class="bg-gray-400 text-white py-2 px-4 rounded-lg hover:bg-gray-500 mr-2">
+                   ยกเลิก
+                </a>
+                <button type="submit" 
+                        class="bg-yellow-500 text-white py-2 px-4 rounded-lg hover:bg-yellow-600">
+                        บันทึก
+                </button>
+            </div>
+        </form>
+    </div>
+</main>
+{% endblock %}

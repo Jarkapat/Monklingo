@@ -1,0 +1,56 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monklingo - Welcome</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+Bhai+2:wght@400..800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@100..900&display=swap" rel="stylesheet">
+    <style>
+        /* ใช้ฟอนต์ที่มีค่าน้ำหนัก 600 และชื่อคลาสเฉพาะ */
+        .baloo-bhai{
+            font-family: "Baloo Bhai 2", serif;
+            font-optical-sizing: auto;
+            font-weight: 800; /* ปรับเป็นค่า 400 ถึง 800 ตามต้องการ */
+            font-style: normal; 
+        }
+        .noto{
+            font-family: "Noto Sans Thai", sans-serif;
+            font-optical-sizing: auto;
+            font-style: normal;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+    <!-- ส่วนข้อความบนซ้าย -->
+    <div class="absolute top-5 left-5">
+        <h1 class="text-3xl font-bold text-yellow-500 baloo-bhai">Monklingo</h1>
+    </div>
+
+    <!-- Layout หลัก -->
+    <div class="flex flex-grow items-center justify-between px-10">
+        <!-- รูปภาพอยู่ฝั่งซ้าย -->
+        <div class="flex-shrink-0 ml-[350px]">
+            <img src="{% static 'images/monk.png' %}" alt="Monk Logo" class="w-full max-w-[800px] h-auto">
+        </div>
+
+        <!-- ปุ่มอยู่ฝั่งขวา -->
+        <div class="flex flex-col items-start space-y-4 mr-[750px] text-center">
+            <h2 class="text-2xl md:text-3xl mb-2 text-center noto ml-20">
+                ยินดีต้อนรับ<br>เข้าสู่ชุมชนของผู้คน<br>ที่ชื่นชอบการตักบาตร
+            </h2>
+            <a href="/register" class="noto w-[400px] py-3 bg-blue-400 text-white text-center  rounded-lg shadow-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                สมัคร
+            </a>
+            <a href="/login" class=" noto w-[400px] py-3 bg-white text-gray-800 text-center rounded-lg shadow-lg border hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50">
+                ฉันมีบัญชีอยู่แล้ว
+            </a>
+        </div>
+    </div>
+</body>
+</html>
