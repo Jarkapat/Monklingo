@@ -1,0 +1,24 @@
+{% extends 'base/base_chat.html' %}
+
+{% block main %}
+<div class="max-w-4xl mx-auto mt-10">
+    <h1 class="text-3xl font-bold text-[#E2A226] mb-6 baloo-bhai">
+        {% if chatroom %}แก้ไขห้องแชท{% else %}เพิ่มห้องแชท{% endif %}
+    </h1>
+    <form method="POST" class="bg-gray-100 p-6 rounded-lg shadow-lg">
+        {% csrf_token %}
+        <div class="mb-4">
+            <label for="name" class="block text-gray-700 text-sm font-bold mb-2">ชื่อห้องแชท</label>
+            <input type="text" name="name" id="name" value="{{ chatroom.name|default:'' }}" class="w-full p-2 border rounded-lg" required>
+        </div>
+        <div class="mb-4">
+            <label for="description" class="block text-gray-700 text-sm font-bold mb-2">คำอธิบาย</label>
+            <textarea name="description" id="description" rows="4" class="w-full p-2 border rounded-lg">{{ chatroom.description|default:'' }}</textarea>
+        </div>
+        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+            {% if chatroom %}บันทึกการแก้ไข{% else %}เพิ่มห้องแชท{% endif %}
+        </button>
+        <a href="{% url 'chat_list' %}" class="ml-4 text-gray-500 hover:text-gray-700">ยกเลิก</a>
+    </form>
+</div>
+{% endblock %}

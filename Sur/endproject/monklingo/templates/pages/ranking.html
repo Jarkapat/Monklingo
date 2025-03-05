@@ -1,50 +1,40 @@
-{%extends  'base/base_rank.html'%}
-{%block main%}
-<div class="flex justify-center h-screen">
+{% extends 'base/base_rank.html' %}
+{% block main %}
+
+<div class="flex flex-col h-screen">
     <!-- ส่วนตรงกลาง -->
-    <div class="w-full max-w-5xl bg-white p-6">
+    <div class="flex-grow w-full max-w-5xl mx-auto bg-white p-6 overflow-y-auto">
         <h2 class="text-center text-3xl font-bold text-black">อันดับสูงสุด</h2>
-        <p class="text-center text-gray-500 text-sm mt-1">ตักมาตรเพิ่มขึ้นเพื่อเลื่อนระดับ...</p>
+        <p class="text-center text-gray-500 text-sm mt-1">ตักบาตรเพิ่มขึ้นเพื่อเลื่อนระดับ...</p>
 
         <div class="mt-6">
             <!-- ตารางอันดับ -->
-            <div class="grid grid-cols-12 items-center py-4 border-b">
-                <div class="col-span-1 text-center font-semibold">1</div>
+            {% for user in ranking %}
+            <div class="grid grid-cols-12 items-center py-4 border-b rounded-lg
+                {% if user == request.user %}bg-yellow-100{% endif %}">
+                <div class="col-span-1 text-center font-semibold {% if user == request.user %}text-black{% endif %}">
+                    {{ forloop.counter }}
+                </div>
                 <div class="col-span-8 flex items-center space-x-4">
-                    <div class="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
+                    <div class="w-10 h-10 bg-gray-300 rounded-full overflow-hidden flex items-center justify-center">
+                        {% if user.profile_picture %}
+                        <img src="{{ user.profile_picture.url }}" alt="Profile Picture" class="w-full h-full object-cover">
+                        {% else %}
                         <i class="text-gray-600 text-lg">👤</i>
+                        {% endif %}
                     </div>
-                    <div class="flex-grow bg-gray-200 rounded-full h-4"></div>
+                    <span class="font-medium text-gray-900 {% if user == request.user %}text-black{% endif %}">
+                        {{ user.username }}
+                    </span>
                 </div>
-                <div class="col-span-3 text-center font-medium text-gray-700">15</div>
-            </div>
-
-            <div class="grid grid-cols-12 items-center py-4 border-b">
-                <div class="col-span-1 text-center font-semibold">2</div>
-                <div class="col-span-8 flex items-center space-x-4">
-                    <div class="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                        <i class="text-gray-600 text-lg">👤</i>
-                    </div>
-                    <div class="flex-grow bg-gray-200 rounded-full h-4"></div>
+                <div class="col-span-3 text-center font-medium text-gray-700 {% if user == request.user %}text-black{% endif %}">
+                    {{ user.total_photos }} รูป
                 </div>
-                <div class="col-span-3 text-center font-medium text-gray-700">9</div>
             </div>
-
-            <!-- เพิ่มอันดับเพิ่มเติม -->
-            <div class="grid grid-cols-12 items-center py-4 border-b">
-                <div class="col-span-1 text-center font-semibold">5</div>
-                <div class="col-span-8 flex items-center space-x-4">
-                    <div class="w-10 h-10 bg-blue-300 rounded-full flex items-center justify-center">
-                        <i class="text-white text-lg">👦</i>
-                    </div>
-                    <span class="font-medium text-gray-900">Jarkaoat Tongla</span>
-                </div>
-                <div class="col-span-3 text-center font-medium text-gray-700">2</div>
-            </div>
+            {% empty %}
+            <p class="text-center text-gray-500">ไม่มีข้อมูลอันดับ</p>
+            {% endfor %}
         </div>
     </div>
-</div>
 
-
-
-{%endblock%}
+{% endblock %}

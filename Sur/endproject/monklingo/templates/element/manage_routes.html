@@ -1,0 +1,435 @@
+{% extends 'base/base.html' %}
+{% block main %}
+
+<div class="flex-1 overflow-y-auto ml-[300px] mt-10">
+  <h1 class="text-left text-3xl font-semibold my-6 noto">จัดการวัด เส้นทาง และ Checkpoints</h1>
+  <button class="px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring focus:ring-blue-300 noto">
+  <a href="/routes">กลับไปหน้าเส้นทาง</a>
+  </button>
+  <!-- ✅ เพิ่มวัด -->
+  <div class="bg-white shadow-md rounded-lg p-6 mt-6 max-w-2xl">
+    <h2 class="text-xl font-bold mb-4">เพิ่มวัดใหม่</h2>
+    <input type="text" id="temple_name" placeholder="ชื่อวัด" class="border p-2 rounded-md w-full">
+    <input type="text" id="temple_location" placeholder="ที่ตั้ง (ไม่บังคับ)" class="border p-2 rounded-md w-full mt-2">
+    <button onclick="addTemple()" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded mt-4">
+      เพิ่มวัด
+    </button>
+      <!-- ✅ เพิ่มเส้นทาง -->
+    <h2 class="text-xl font-bold mb-4 mt-4">เพิ่มเส้นทางใหม่</h2>
+    <label for="new_route_temple">วัด:</label>
+    <select id="new_route_temple" class="border p-2 rounded-md w-full">
+      <option value="">-- กรุณาเลือกวัด --</option>
+    </select>
+    <input type="text" id="route_name" placeholder="ชื่อเส้นทาง" class="border p-2 rounded-md">
+    <input type="time" id="route_start_time" class="border p-2 rounded-md">
+    <button onclick="addRoute()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-4">
+      เพิ่มเส้นทาง
+    </button>
+    <h2 class="text-xl font-bold mb-4 mt-4">รายชื่อวัด</h2>
+    <div id="temple_list" class="space-y-2"></div> 
+  </div>
+
+  <!-- ✅ แผนที่ -->
+  <div id="map" class="w-full sm:w-[800px] h-[500px] border border-black mt-6"></div>
+
+  <div class="bg-white shadow-md rounded-lg p-6 mt-6 max-w-2xl">
+    <!-- ✅ เลือกวัด -->
+    <label for="temple_select" class="block mb-2 text-gray-600">เลือกวัด:</label>
+    <select id="temple_select" onchange="fetchRoutes()" class="border p-2 rounded-md w-full">
+      <option value="">-- กรุณาเลือกวัด --</option>
+    </select>
+
+    <!-- ✅ เลือกเส้นทาง -->
+    <label for="route_select" class="block mb-2 text-gray-600 mt-4">เลือกเส้นทาง:</label>
+    <select id="route_select" onchange="fetchCheckpoints()" class="border p-2 rounded-md w-full">
+      <option value="">-- กรุณาเลือกเส้นทาง --</option>
+    </select>
+    <h2 class="text-xl font-bold mb-4 mt-4">รายชื่อเส้นทาง</h2>
+    <div id="route_list" class="space-y-2"></div> 
+  </div>
+
+  <!-- ✅ การจัดการ Checkpoints -->
+  <div class="bg-white shadow-md rounded-lg p-6 mt-6 max-w-2xl">
+    <h2 class="text-xl font-bold mb-4">จัดการ Checkpoints</h2>
+
+    <table class="w-full mt-4 border-collapse border border-gray-400">
+      <thead>
+        <tr class="bg-gray-100">
+          <th class="border border-gray-400 p-2">ชื่อ</th>
+          <th class="border border-gray-400 p-2">ละติจูด</th>
+          <th class="border border-gray-400 p-2">ลองจิจูด</th>
+          <th class="border border-gray-400 p-2">เวลาเดินทาง (นาที)</th>
+          <th class="border border-gray-400 p-2">ลบ</th>
+        </tr>
+      </thead>
+      <tbody id="checkpoints_table"></tbody>
+    </table>
+
+    <button onclick="saveAllCheckpoints()" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mt-4">
+      บันทึก Checkpoints ทั้งหมด
+    </button>
+  </div>
+</div>
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+let map, currentRouteId;
+let checkpointMarkers = [];
+let routePolyline = null;
+
+window.onload = function () {
+    console.log("✅ Window fully loaded, initializing map...");
+    initMap();
+    fetchTemples(); // โหลดวัดทั้งหมด
+};
+
+function initMap() {
+    map = L.map("map").setView([13.736717, 100.523186], 13);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    map.on("click", function (e) {
+        addCheckpoint(e.latlng.lat, e.latlng.lng);
+    });
+}
+
+async function fetchRoutes() {
+    let templeId = document.getElementById("temple_select").value;
+    if (!templeId) {
+        console.log("⚠️ กรุณาเลือกวัดก่อนโหลดเส้นทาง");
+        return;
+    }
+
+    try {
+        let response = await fetch(`/api/routes/${templeId}/`);
+        if (!response.ok) throw new Error("❌ ไม่สามารถดึงข้อมูลเส้นทางได้");
+
+        let routes = await response.json();
+        let select = document.getElementById("route_select");
+        let routeList = document.getElementById("route_list");
+
+        select.innerHTML = `<option value="">-- กรุณาเลือกเส้นทาง --</option>`;
+        routeList.innerHTML = "";
+
+        routes.forEach(route => {
+            // ✅ แสดงใน Dropdown
+            let option = document.createElement("option");
+            option.value = route.id;
+            option.textContent = `${route.name} (เริ่ม ${route.start_time})`;
+            select.appendChild(option);
+
+            // ✅ แสดงในรายการเส้นทาง
+            let routeItem = document.createElement("div");
+            routeItem.classList.add("flex", "justify-between", "items-center", "border", "p-2", "rounded-md", "mt-2");
+            routeItem.innerHTML = `
+                <span>${route.name} (เริ่ม ${route.start_time})</span>
+                <button onclick="deleteRoute(${route.id})" class="bg-red-500 text-white px-3 py-1 rounded">
+                    ลบ
+                </button>
+            `;
+            routeList.appendChild(routeItem);
+        });
+
+        console.log("✅ โหลดเส้นทางสำเร็จ", routes);
+    } catch (error) {
+        console.error("❌ Error:", error);
+    }
+}
+
+async function fetchTemples() {
+    let response = await fetch("/api/temples/");
+    let temples = await response.json();
+
+    let select = document.getElementById("temple_select");
+    let selectNewRoute = document.getElementById("new_route_temple");
+    let templeList = document.getElementById("temple_list");
+
+    select.innerHTML = `<option value="">-- กรุณาเลือกวัด --</option>`;
+    selectNewRoute.innerHTML = `<option value="">-- กรุณาเลือกวัด --</option>`;
+    templeList.innerHTML = "";
+
+    temples.forEach(temple => {
+        let option = document.createElement("option");
+        option.value = temple.id;
+        option.textContent = temple.name;
+        select.appendChild(option);
+        selectNewRoute.appendChild(option.cloneNode(true));
+
+        let templeItem = document.createElement("div");
+        templeItem.classList.add("flex", "justify-between", "items-center", "border", "p-2", "rounded-md", "mt-2");
+        templeItem.innerHTML = `
+            <span>${temple.name}</span>
+            <button onclick="deleteTemple(${temple.id})" class="bg-red-500 text-white px-3 py-1 rounded">ลบ</button>
+        `;
+        templeList.appendChild(templeItem);
+    });
+}
+
+async function addTemple() {
+    let name = document.getElementById("temple_name").value;
+    let location = document.getElementById("temple_location").value || "";
+
+    if (!name) {
+        alert("❌ กรุณากรอกชื่อวัด");
+        return;
+    }
+
+    let response = await fetch("/api/temples/add/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name, location: location })
+    });
+
+    if (response.ok) {
+        alert("✅ เพิ่มวัดสำเร็จ!");
+        fetchTemples(); // ✅ โหลดรายการวัดใหม่
+        document.getElementById("temple_name").value = ""; // ✅ ล้างค่าอินพุต
+        document.getElementById("temple_location").value = "";
+    } else {
+        let errorData = await response.json();
+        alert(`❌ ไม่สามารถเพิ่มวัดได้: ${errorData.error || "เกิดข้อผิดพลาด"}`);
+    }
+}
+
+async function deleteTemple(templeId) {
+    if (!confirm("คุณแน่ใจหรือไม่ว่าต้องการลบวัดนี้?")) return;
+
+    await fetch(`/api/temples/${templeId}/delete/`, { method: "DELETE" });
+    alert("✅ ลบวัดเรียบร้อย!");
+    fetchTemples();
+}
+async function addRoute() {
+    let templeId = document.getElementById("new_route_temple").value;
+    let name = document.getElementById("route_name").value;
+    let startTime = document.getElementById("route_start_time").value;
+
+    if (!templeId || !name || !startTime) {
+        alert("❌ กรุณาเลือกวัดและกรอกชื่อเส้นทางและเวลาเริ่มต้น");
+        return;
+    }
+
+    let response = await fetch("/api/routes/add/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ temple_id: templeId, name: name, start_time: startTime })
+    });
+
+    if (response.ok) {
+        alert("✅ เพิ่มเส้นทางสำเร็จ!");
+        fetchRoutes(); // ✅ โหลดรายการเส้นทางใหม่
+        document.getElementById("route_name").value = ""; // ✅ ล้างค่าอินพุต
+        document.getElementById("route_start_time").value = "";
+    } else {
+        let errorData = await response.json();
+        alert(`❌ ไม่สามารถเพิ่มเส้นทางได้: ${errorData.error || "เกิดข้อผิดพลาด"}`);
+    }
+}
+async function deleteRoute(routeId) {
+    if (!confirm("❌ คุณแน่ใจหรือไม่ว่าต้องการลบเส้นทางนี้?")) return;
+
+    let response = await fetch(`/api/routes/${routeId}/delete/`, {
+        method: "DELETE"
+    });
+
+    let data = await response.json();
+    if (response.ok) {
+        alert("✅ ลบเส้นทางเรียบร้อย!");
+        fetchRoutes(); // ✅ โหลดรายการเส้นทางใหม่
+    } else {
+        alert(`❌ ไม่สามารถลบเส้นทางได้: ${data.error || "เกิดข้อผิดพลาด"}`);
+    }
+}
+
+async function fetchCheckpoints() {
+    let routeId = document.getElementById("route_select").value;
+    if (!routeId) {
+        currentRouteId = null;
+        return;
+    }
+
+    currentRouteId = routeId;
+
+    let response = await fetch(`/api/routes/${routeId}/checkpoints/`);
+    let checkpoints = await response.json();
+
+    let table = document.getElementById("checkpoints_table");
+    table.innerHTML = "";
+    checkpointMarkers.forEach(({ marker }) => map.removeLayer(marker));
+    checkpointMarkers = [];
+
+    checkpoints.forEach(cp => {
+        addCheckpointOnMap(cp.lat, cp.lon, cp.name || `Checkpoint ${checkpointMarkers.length + 1}`, cp.id, cp.travel_time);
+    });
+
+    updateRoutePolyline();
+
+    // ✅ **เลื่อนแผนที่ไปยัง Checkpoint แรกของเส้นทาง**
+    if (checkpointMarkers.length > 0) {
+        let firstCheckpoint = checkpointMarkers[0].marker.getLatLng();
+        map.setView(firstCheckpoint, 15); // 🔹 ซูมเข้าไปที่จุดแรก ระดับ 15
+    }
+}
+
+
+async function addCheckpoint(lat, lon) {
+    if (!currentRouteId) {
+        alert("❌ กรุณาเลือกเส้นทางก่อนเพิ่ม Checkpoint");
+        return;
+    }
+
+    let name = `Checkpoint ${checkpointMarkers.length + 1}`; // ✅ กำหนดชื่อที่นี่
+    let travelTime = 5;
+
+    let response = await fetch(`/api/routes/${currentRouteId}/checkpoints/add/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, lat, lon, travel_time: travelTime })
+    });
+
+    if (response.ok) {
+        let checkpoint = await response.json();
+        addCheckpointOnMap(lat, lon, checkpoint.name, checkpoint.id, travelTime);
+    } else {
+        alert("❌ ไม่สามารถเพิ่ม Checkpoint ได้");
+    }
+}
+
+
+function addCheckpointOnMap(lat, lon, name, id, travel_time) {
+    if (!name) { 
+        name = `Checkpoint ${checkpointMarkers.length + 1}`; // ✅ ตั้งชื่อสำรองถ้าไม่มีชื่อ
+    }
+
+    let marker = L.marker([lat, lon], {
+        draggable: true,
+        icon: L.icon({
+            iconUrl: "https://cdn-icons-png.flaticon.com/512/3448/3448577.png",
+            iconSize: [30, 30]
+        })
+    }).addTo(map);
+
+    marker.bindTooltip(name, { permanent: true, direction: "top" }).openTooltip();
+
+    marker.on("dragend", function (e) {
+        let newLatLng = e.target.getLatLng();
+        updateCheckpointPosition(id, newLatLng.lat, newLatLng.lng);
+        updateCheckpointTable(id, newLatLng.lat, newLatLng.lng);
+        updateRoutePolyline();
+    });
+
+    checkpointMarkers.push({ marker, id, name, lat, lon, travel_time });
+
+    addCheckpointToTable(id, name, lat, lon, travel_time);
+
+    updateRoutePolyline(); 
+}
+
+
+async function updateCheckpointPosition(id, lat, lon) {
+    let response = await fetch(`/api/checkpoints/${id}/update/`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lat, lon })
+    });
+
+    if (response.ok) {
+        console.log(`✅ Checkpoint ${id} updated to new position: ${lat}, ${lon}`);
+    }
+}
+
+function updateCheckpointTable(id, newLat, newLon) {
+    let row = document.querySelector(`tr[data-id="${id}"]`);
+    if (row) {
+        row.querySelector("td:nth-child(2) input").value = newLat;
+        row.querySelector("td:nth-child(3) input").value = newLon;
+    }
+}
+function addCheckpointToTable(id, name, lat, lon, travel_time) {
+    let table = document.getElementById("checkpoints_table");
+    let row = document.createElement("tr");
+    row.dataset.id = id || "";
+
+    row.innerHTML = `
+        <td class="border border-gray-400 p-2"><input type="text" value="${name}" class="border p-1 rounded-md"></td>
+        <td class="border border-gray-400 p-2"><input type="text" value="${lat}" class="border p-1 rounded-md"></td>
+        <td class="border border-gray-400 p-2"><input type="text" value="${lon}" class="border p-1 rounded-md"></td>
+        <td class="border border-gray-400 p-2"><input type="number" value="${travel_time}" class="border p-1 rounded-md"></td>
+        <td class="border border-gray-400 p-2">
+            <button onclick="deleteCheckpoint(${id})" class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 rounded">
+                ลบ
+            </button>
+        </td>
+    `;
+    table.appendChild(row);
+}
+
+async function deleteCheckpoint(id) {
+    await fetch(`/api/checkpoints/${id}/delete/`, { method: "DELETE" });
+
+    let index = checkpointMarkers.findIndex(cp => cp.id === id);
+    if (index !== -1) {
+        map.removeLayer(checkpointMarkers[index].marker);
+        checkpointMarkers.splice(index, 1);
+    }
+    fetchCheckpoints();
+}
+
+function updateRoutePolyline() {
+    if (routePolyline) {
+        map.removeLayer(routePolyline); // ✅ ลบเส้นเก่าออกก่อนวาดใหม่
+    }
+
+    let routeCoordinates = checkpointMarkers.map(cp => [cp.marker.getLatLng().lat, cp.marker.getLatLng().lng]);
+
+    if (routeCoordinates.length > 1) {
+        routePolyline = L.polyline(routeCoordinates, { color: 'blue', weight: 4 }).addTo(map);
+    }
+}
+async function saveAllCheckpoints() {
+    if (!currentRouteId) {
+        alert("❌ กรุณาเลือกเส้นทางก่อนบันทึก Checkpoints");
+        return;
+    }
+
+    let tableRows = document.querySelectorAll("#checkpoints_table tr");
+    let updatedCheckpoints = Array.from(tableRows).map(row => {
+        let id = row.dataset.id ? parseInt(row.dataset.id) : null;
+        let name = row.querySelector("td:nth-child(1) input").value;
+        let lat = parseFloat(row.querySelector("td:nth-child(2) input").value);
+        let lon = parseFloat(row.querySelector("td:nth-child(3) input").value);
+        let travel_time = parseInt(row.querySelector("td:nth-child(4) input").value); 
+
+        return { id, name, lat, lon, travel_time };
+    });
+
+    for (let cp of updatedCheckpoints) {
+        if (cp.id) {
+            // ✅ ส่งค่าที่แก้ไขไปยังเซิร์ฟเวอร์
+            await fetch(`/api/checkpoints/${cp.id}/update/`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(cp)
+            });
+        } else {
+            // ✅ กรณีเป็น Checkpoint ใหม่
+            let response = await fetch(`/api/routes/${currentRouteId}/checkpoints/add/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(cp)
+            });
+
+            let savedCheckpoint = await response.json();
+            cp.id = savedCheckpoint.id;
+        }
+    }
+
+    alert("✅ บันทึก Checkpoints ทั้งหมดเรียบร้อย!");
+    fetchCheckpoints();
+}
+
+
+</script>
+
+{% endblock %}

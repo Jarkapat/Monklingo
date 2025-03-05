@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Django Tailwind Chat Base</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+Bhai+2:wght@400..800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn-uicons.flaticon.com/2.6.0/uicons-regular-rounded/css/uicons-regular-rounded.css">
+    <link rel="stylesheet" href="https://cdn-uicons.flaticon.com/2.6.0/uicons-regular-straight/css/uicons-regular-straight.css">
+
+    <!-- Custom Styles -->
+    <style>
+        .baloo-bhai {
+            font-family: "Baloo Bhai 2", serif;
+            font-weight: 800;
+        }
+        .noto {
+            font-family: "Noto Sans Thai", sans-serif;
+        }
+        #mapA, #mapB, #mapC {
+            z-index: 1;
+        }
+        .leaflet-container {
+            z-index: 1;
+        }
+        #uploadModal {
+            z-index: 1000; /* Ensure modals appear on top */
+            position: fixed;
+        }
+    </style>
+</head>
+<body class="flex flex-row min-h-screen noto">
+    <!-- Include Left Sidebar -->
+    {% include 'element/left_bar.html' %}
+
+    <!-- Main Content -->
+    <main class="flex-grow p-4 ">
+        {% block main %}
+        <!-- Content specific to each page will go here -->
+        {% endblock %}
+    </main>
+
+    <!-- Include Right Sidebar (Chat) -->
+    {% include 'right/right_chat.html' %}
+</body>
+</html>

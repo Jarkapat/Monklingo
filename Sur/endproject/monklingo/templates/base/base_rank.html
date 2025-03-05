@@ -6,8 +6,6 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<meta http-equiv="X-UA-Compatible" content="ie=edge">
 		<script src="https://cdn.tailwindcss.com"></script>
-        <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-        <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
         <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
         <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
         <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,7 +14,22 @@
         <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@100..900&display=swap" rel="stylesheet">
         <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/2.6.0/uicons-regular-rounded/css/uicons-regular-rounded.css'>
         <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/2.6.0/uicons-regular-straight/css/uicons-regular-straight.css'>
-        
+        {% block meta %}
+            {% if user_rank and user_rank != "N/A" %}
+                <meta property="og:title" content="🏆 ฉันอยู่ที่อันดับ #{{ user_rank }} ใน Monklingo!">
+            {% else %}
+                <meta property="og:title" content="🏆 เข้าร่วม Monklingo! เพื่อเลื่อนระดับ">
+            {% endif %}
+            <meta property="og:description" content="เช็คอันดับของคุณและตักบาตรเพิ่มขึ้นเพื่อเลื่อนระดับ!">
+            <meta property="og:image" content="https://bf0d-49-229-22-70.ngrok-free.app/static/images/monk.png">
+            <meta property="og:image:type" content="image/png">
+            <meta property="og:image:width" content="600">
+            <meta property="og:image:height" content="400">            
+            <meta property="og:type" content="article">
+        {% endblock %}
+
+    
+
         <style>
             /* ใช้ฟอนต์ที่มีค่าน้ำหนัก 600 และชื่อคลาสเฉพาะ */
             .baloo-bhai{
@@ -31,9 +44,13 @@
                 font-style: normal;
             }
         </style>
+        <script async defer crossorigin="anonymous" 
+        src="https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v17.0" 
+        nonce="xyz">
+        </script>
     </head>
 	
-    <body class="flex flex-row min-h-screen ">
+    <body class="flex flex-row min-h-screen noto">
         <!-- Sidebar ซ้าย -->
         {% include 'element/left_bar.html' %}
     

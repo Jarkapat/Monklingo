@@ -1,0 +1,110 @@
+{% extends 'base/base_user.html' %}
+{% block main %}
+<div class="container mx-auto p-4">
+    <h2 class="text-2xl font-bold mb-4 text-center">ถ่ายรูปการตักบาตร</h2>
+
+    <!-- กล้องและรูปที่ถ่าย -->
+    <div class="flex justify-center">
+        <video id="video" autoplay class="w-[640px] h-[480px] bg-gray-300 rounded-lg mb-4"></video>
+        <canvas id="canvas" class="hidden w-[640px] h-[480px] bg-gray-300 rounded-lg mb-4"></canvas>
+    </div>
+
+    <!-- ปุ่มควบคุม -->
+    <div class="flex justify-center space-x-4">
+        <button id="takePhoto" class="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600">
+            ถ่ายรูป
+        </button>
+        <button id="retakePhoto" class="bg-yellow-500 text-white py-2 px-4 rounded-lg hover:bg-yellow-600 hidden">
+            ถ่ายใหม่
+        </button>
+        <button id="closeCamera" class="bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600">
+            ปิดกล้อง
+        </button>
+    </div>
+
+    <!-- ฟอร์มสำหรับอัพโหลด -->
+    <form action="{% url 'upload_image' %}" method="POST" enctype="multipart/form-data" class="mt-4 hidden text-center" id="uploadForm">
+        {% csrf_token %}
+        <input type="hidden" name="image" id="imageData">
+        <button type="submit" class="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 w-full">
+            อัพโหลดรูป
+        </button>
+    </form>
+</div>
+
+
+<script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const takePhoto = document.getElementById('takePhoto');
+    const retakePhoto = document.getElementById('retakePhoto');
+    const closeCamera = document.getElementById('closeCamera');
+    const uploadForm = document.getElementById('uploadForm');
+    const imageDataInput = document.getElementById('imageData');
+    
+
+    let stream = null;
+
+    // เปิดกล้องอัตโนมัติเมื่อเข้าหน้า
+    async function startCamera() {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: "user" } });
+            video.srcObject = stream;
+            video.classList.remove('hidden');
+            canvas.classList.add('hidden');
+            retakePhoto.classList.add('hidden');
+            uploadForm.classList.add('hidden');
+        } catch (err) {
+            alert('ไม่สามารถเข้าถึงกล้องได้');
+            console.error('Error accessing camera:', err);
+        }
+    }
+
+    startCamera();
+
+    // ปิดกล้อง
+    closeCamera.addEventListener('click', () => {
+        stopCamera();
+        window.location.href = "/routes/";
+    });
+
+    // ถ่ายรูป
+    takePhoto.addEventListener('click', () => {
+        const context = canvas.getContext('2d');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        // แก้ไขให้ภาพแสดงถูกต้อง
+        context.translate(canvas.width, 0);
+        context.scale(-1, 1);  // กล้องหน้าอาจกลับด้าน ต้องกลับมาเป็นปกติ
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // แปลงรูปเป็น Base64
+        const imageData = canvas.toDataURL('image/png');
+        imageDataInput.value = imageData;
+
+        // ซ่อนกล้องและแสดงภาพที่ถ่าย
+        video.classList.add('hidden');
+        canvas.classList.remove('hidden');
+        retakePhoto.classList.remove('hidden');
+        uploadForm.classList.remove('hidden');
+
+        // ปิดกล้องหลังจากถ่ายรูป
+        stopCamera();
+    });
+
+    // ถ่ายใหม่
+    retakePhoto.addEventListener('click', async () => {
+        startCamera();
+    });
+
+    // หยุดการทำงานของกล้อง
+    function stopCamera() {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            video.srcObject = null;
+        }
+    }
+
+</script>
+{% endblock %}

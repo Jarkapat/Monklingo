@@ -1,0 +1,35 @@
+[
+    {
+        "model": "monklingo.checkpoint",
+        "pk": 1,
+        "fields": {
+            "route": 1,
+            "order": 1,
+            "lat": 13.736717,
+            "lon": 100.523186,
+            "travel_time": "00:10:00"
+        }
+    },
+    {
+        "model": "monklingo.checkpoint",
+        "pk": 2,
+        "fields": {
+            "route": 1,
+            "order": 2,
+            "lat": 13.738878,
+            "lon": 100.524193,
+            "travel_time": "00:08:00"
+        }
+    },
+    {
+        "model": "monklingo.checkpoint",
+        "pk": 3,
+        "fields": {
+            "route": 1,
+            "order": 3,
+            "lat": 13.741029,
+            "lon": 100.525874,
+            "travel_time": "00:07:00"
+        }
+    }
+]

@@ -10,11 +10,22 @@
         cursor: pointer;
     }
 
-    #profilePicturePreview {
-        transition: all 0.3s ease-in-out;
+    .password-container {
+        position: relative;
     }
 
-    /* สไตล์สำหรับข้อความแจ้งเตือน */
+    .password-container input {
+        padding-right: 2.5rem;
+    }
+
+    .password-container .toggle-password {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+    }
+
     .alert {
         padding: 1rem;
         border-radius: 8px;
@@ -38,20 +49,21 @@
     <div class="max-w-6xl mx-auto">
         <h1 class="text-4xl font-bold mb-8 ml-52 noto">โปรไฟล์</h1>
         
-        <!-- แสดงข้อความแจ้งเตือน -->
         {% if messages %}
-            <div>
+            <div id="alertContainer">
                 {% for message in messages %}
-                    <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-error{% endif %}">
+                    <div class="alert {% if message.tags == 'success' %}alert-success{% else %}alert-error{% endif %}">
                         {{ message }}
                     </div>
                 {% endfor %}
             </div>
+            <script>
+                setTimeout(() => document.getElementById("alertContainer").style.display = "none", 3000);
+            </script>
         {% endif %}
-        
+
         <div class="flex flex-col items-center">
-            <!-- ฟอร์มแก้ไขข้อมูล -->
-            <form method="post" enctype="multipart/form-data" class="w-full max-w-3xl space-y-6 mt-8">
+            <form id="profileForm" method="post" enctype="multipart/form-data" class="w-full max-w-3xl space-y-6 mt-8">
                 {% csrf_token %}
                 
                 <div class="flex flex-col">
@@ -60,58 +72,57 @@
                         <!-- Input อัปโหลดรูปภาพ -->
                         <input type="file" id="profile_picture" name="profile_picture" 
                                class="absolute inset-0 opacity-0 cursor-pointer"
+                               accept="image/png, image/jpeg, image/jpg"
                                onchange="previewImage(event)">
-                        
-                        <!-- Placeholder -->
-                        {% if user.profile_picture %}
-                        <div id="placeholder" class="hidden w-full h-full rounded-full bg-gray-100 flex items-center justify-center border border-gray-300">
+                
+                        <!-- Placeholder (กรณีไม่มีรูป) -->
+                        <div id="placeholder" class="w-full h-full rounded-full bg-gray-100 flex items-center justify-center border border-gray-300 
+                            {% if user.profile_picture %}hidden{% endif %}">
                             <span class="text-gray-400 text-sm">เพิ่มรูป</span>
                         </div>
-                        {% else %}
-                        <div id="placeholder" class="w-full h-full rounded-full bg-gray-100 flex items-center justify-center border border-gray-300">
-                            <span class="text-gray-400 text-sm">เพิ่มรูป</span>
-                        </div>
-                        {% endif %}
-                        
+                
                         <!-- รูปโปรไฟล์ -->
                         <img id="profilePicturePreview" 
-                             src="{% if user.profile_picture %}{{ user.profile_picture.url }}{% else %}# {% endif %}" 
-                             alt="Profile Picture" 
-                             class="w-full h-full rounded-full object-cover border border-gray-300 
-                                    {% if not user.profile_picture %}hidden{% endif %}">
+                            src="{% if user.profile_picture %}{{ user.profile_picture.url }}{% else %}# {% endif %}" 
+                            alt="Profile Picture" 
+                            class="w-full h-full rounded-full object-cover border border-gray-300 
+                            {% if not user.profile_picture %}hidden{% endif %}">
                     </div>
+                
+                    <!-- คำเตือนเกี่ยวกับการอัปโหลด -->
+                    <p id="imageWarning" class="text-red-500 text-sm mt-2 hidden">
+                        * กรุณาอัปโหลดไฟล์ภาพในรูปแบบ PNG, JPG, หรือ JPEG และขนาดไม่เกิน 5MB
+                    </p>
                 </div>
-
+                
+                <!-- ชื่อผู้ใช้ -->
                 <div class="flex flex-col">
                     <label for="username" class="text-lg text-gray-700 noto mb-2">ชื่อบัญชีผู้ใช้</label>
                     <input type="text" id="username" name="username" value="{{ user.username }}" class="w-full border-gray-300 rounded-md p-2 border bg-gray-100">
+                    <p class="text-red-500 text-sm mt-1 hidden" id="usernameWarning">* ชื่อผู้ใช้ต้องมีอย่างน้อย 3 ตัวอักษร</p>
                 </div>
-               
+            
+                <!-- อีเมล -->
                 <div class="flex flex-col">
                     <label for="email" class="text-lg text-gray-700 noto mb-2">อีเมล</label>
                     <input type="email" id="email" name="email" value="{{ user.email }}" class="w-full border-gray-300 rounded-md p-2 border bg-gray-100">
+                    <p class="text-red-500 text-sm mt-1 hidden" id="emailWarning">* กรุณากรอกอีเมลที่ถูกต้อง</p>
                 </div>
-                
-                <div class="flex flex-col">
-                    <label for="current_password" class="text-lg text-gray-700 noto mb-2">รหัสผ่านปัจจุบัน</label>
-                    <div class="relative">
-                        <input type="password" id="current_password" name="current_password" class="w-full border-gray-300 rounded-md p-2 border bg-gray-100">
-                        <button type="button" class="absolute right-3 top-1/2 transform -translate-y-1/2" onclick="togglePasswordVisibility('current_password')">
-                            👁️
-                        </button>
-                    </div>
-                </div>
-                
+            
+                <!-- เปลี่ยนรหัสผ่าน -->
                 <div class="flex flex-col">
                     <label for="new_password" class="text-lg text-gray-700 noto mb-2">รหัสผ่านใหม่</label>
-                    <div class="relative">
-                        <input type="password" id="new_password" name="new_password" class="w-full border-gray-300 rounded-md p-2 border bg-gray-100">
-                        <button type="button" class="absolute right-3 top-1/2 transform -translate-y-1/2" onclick="togglePasswordVisibility('new_password')">
-                            👁️
-                        </button>
-                    </div>
+                    <input type="password" id="new_password" name="new_password" class="w-full border-gray-300 rounded-md p-2 border bg-gray-100">
+                    <p class="text-red-500 text-sm mt-1 hidden" id="newPasswordWarning">* รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร, มีตัวเลข, ตัวพิมพ์ใหญ่ และอักขระพิเศษ</p>
                 </div>
-
+            
+                <div class="flex flex-col">
+                    <label for="confirm_new_password" class="text-lg text-gray-700 noto mb-2">ยืนยันรหัสผ่านใหม่</label>
+                    <input type="password" id="confirm_new_password" name="confirm_new_password" class="w-full border-gray-300 rounded-md p-2 border bg-gray-100">
+                    <p class="text-red-500 text-sm mt-1 hidden" id="confirmPasswordWarning">* รหัสผ่านไม่ตรงกัน</p>
+                </div>
+            
+                <!-- ปุ่มบันทึก -->
                 <button type="submit" class="w-full bg-yellow-500 text-white py-3 rounded-md hover:bg-yellow-600 noto text-lg font-bold">
                     บันทึกการเปลี่ยนแปลง
                 </button>
@@ -121,31 +132,53 @@
 </main>
 
 <script>
-    function previewImage(event) {
-        const input = event.target;
-        const reader = new FileReader();
+    document.getElementById("profileForm").addEventListener("submit", function (event) {
+        let isValid = true;
 
-        reader.onload = function () {
-            const preview = document.getElementById('profilePicturePreview');
-            const placeholder = document.getElementById('placeholder');
-            preview.src = reader.result;
-            preview.classList.remove('hidden');
-            placeholder.classList.add('hidden');
-        };
+        function showWarning(inputId, warningId, condition) {
+            const input = document.getElementById(inputId);
+            const warning = document.getElementById(warningId);
 
-        if (input.files[0]) {
-            reader.readAsDataURL(input.files[0]);
+            if (condition) {
+                input.classList.add("border-red-500");
+                warning.classList.remove("hidden");
+                isValid = false;
+            } else {
+                input.classList.remove("border-red-500");
+                warning.classList.add("hidden");
+            }
         }
-    }
 
-    function togglePasswordVisibility(inputId) {
-        const inputField = document.getElementById(inputId);
-        const currentType = inputField.type;
-        if (currentType === "password") {
-            inputField.type = "text"; // แสดงรหัสผ่าน
-        } else {
-            inputField.type = "password"; // ซ่อนรหัสผ่าน
+        // ตรวจสอบชื่อผู้ใช้ (ต้องมีอย่างน้อย 3 ตัวอักษร)
+        showWarning("username", "usernameWarning", document.getElementById("username").value.length < 3);
+
+        // ตรวจสอบอีเมล (ต้องเป็นรูปแบบอีเมลที่ถูกต้อง)
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        showWarning("email", "emailWarning", !emailPattern.test(document.getElementById("email").value));
+
+        // ตรวจสอบรหัสผ่านใหม่ (ต้องมีความยาว 8 ตัวอักษรขึ้นไป และมีตัวเลข ตัวพิมพ์ใหญ่ )
+        const password = document.getElementById("new_password").value;
+        const passwordValid = password.length >= 8 &&
+                              /[A-Z]/.test(password) &&
+                              /[0-9]/.test(password);
+        showWarning("new_password", "newPasswordWarning", password && !passwordValid);
+
+        // ตรวจสอบรหัสผ่านยืนยัน (ต้องตรงกับรหัสผ่านใหม่)
+        const confirmPassword = document.getElementById("confirm_new_password").value;
+        showWarning("confirm_new_password", "confirmPasswordWarning", password && password !== confirmPassword);
+
+        if (!isValid) {
+            event.preventDefault(); // ป้องกันการส่งฟอร์มถ้าข้อมูลผิดข้อกำหนด
         }
-    }
+    });
+
+    // ซ่อนคำเตือนอัตโนมัติเมื่อผู้ใช้เริ่มพิมพ์ข้อมูล
+    document.querySelectorAll("input").forEach(input => {
+        input.addEventListener("input", function () {
+            this.classList.remove("border-red-500");
+            document.getElementById(this.id + "Warning")?.classList.add("hidden");
+        });
+    });
 </script>
+
 {% endblock %}

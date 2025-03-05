@@ -22,6 +22,14 @@
         width: 100%; /* ปรับความกว้างของตาราง */
         border-collapse: collapse; /* รวมขอบตาราง */
         font-family: 'Arial', sans-serif; /* กำหนดฟอนต์ */
+        table-layout: fixed; /* บังคับความกว้างคอลัมน์ให้สมดุล */
+    }
+
+    th, td {
+        text-align: center; /* จัดข้อความตรงกลางแนวนอน */
+        vertical-align: middle; /* จัดข้อความตรงกลางแนวตั้ง */
+        padding: 12px 20px; /* เพิ่มระยะห่างในเซลล์ */
+        border-bottom: 1px solid #ddd; /* ขอบล่างของแต่ละเซลล์ */
     }
 
     /* สไตล์สำหรับแถวหัวตาราง */
@@ -29,8 +37,6 @@
         background-color: #f9e58d; /* สีพื้นหลังหัวตาราง */
         font-weight: bold; /* กำหนดให้ตัวอักษรหนา */
         color: #333; /* สีตัวอักษร */
-        padding: 12px 20px; /* เพิ่มระยะห่างจากขอบ */
-        text-align: left; /* จัดตัวอักษรไปทางซ้าย */
     }
 
     /* เปลี่ยนสีแถวเมื่อผู้ใช้ชี้ */
@@ -38,12 +44,7 @@
         background-color: #f1f1f1; /* เปลี่ยนสีพื้นหลังเมื่อชี้เมาส์ */
     }
 
-    /* ปรับแต่งเฉพาะการแสดงผลในเซลล์ */
-    td {
-        color: #555; /* สีตัวอักษรในเซลล์ */
-        padding: 12px 20px; /* เพิ่มระยะห่างจากขอบ */
-        border-bottom: 1px solid #ddd; /* ขอบล่างของแต่ละเซลล์ */
-    }
+    /* สีพื้นหลังของแถว */
     tbody tr:nth-child(odd) {
         background-color: #fdf9f0; /* สีพื้นหลังสำหรับแถวที่เป็นเลขคี่ */
     }
@@ -51,96 +52,156 @@
     tbody tr:nth-child(even) {
         background-color: #ffffff; /* สีพื้นหลังสำหรับแถวที่เป็นเลขคู่ */
     }
+
+    /* กำหนดความกว้างขั้นต่ำของคอลัมน์ที่ 4 (รูปภาพ) */
+    th:nth-child(4), td:nth-child(4) {
+        min-width: 100px;
+    }
+
+    /* การแจ้งเตือน */
+    .alert {
+        color: #e3342f; /* สีแดง */
+        font-weight: bold;
+        text-align: center;
+        margin-top: 1rem;
+        font-size: 1.5rem;
+        display: block;
+    }
 </style>
 
-<div class=" mx-auto py-6 px-4 ml-10">
+<div class="mx-auto py-6 px-4 ml-10">
     <!-- แถวที่ 1: การ์ด -->
-    <div class="grid grid-cols-6 gap-6 mb-6 ">
+    <div class="grid grid-cols-6 gap-6 mb-6">
         <!-- การ์ด: ผู้ใช้งานวันนี้ -->
         <div class="dashboard-card col-start-1 col-end-4">
-            <p class="text-lg font-semibold">ผู้ใช้งานวันนี้:</p>
-            <h1 class="text-5xl font-bold mt-2 text-yellow-600">{{ users_today }} คน</h1>
+            <p class="text-lg font-semibold noto">ผู้ใช้เข้าสู่ระบบวันนี้:</p>
+            <h1 class="text-5xl font-bold mt-2 text-yellow-600 noto">{{ users_today }} คน</h1>
         </div>
 
         <!-- การ์ด: ผู้ที่ถ่ายรูปวันนี้ -->
         <div class="dashboard-card col-start-4 col-end-7">
-            <p class="text-lg font-semibold">ผู้ที่ถ่ายรูปวันนี้:</p>
-            <h1 class="text-5xl font-bold mt-2 text-yellow-600">{{ photos_today }} คน</h1>
+            <p class="text-lg font-semibold noto">ผู้ที่ถ่ายรูปวันนี้:</p>
+            <h1 class="text-5xl font-bold mt-2 text-yellow-600 noto">{{ photos_today }} คน</h1>
         </div>
     </div>
 
     <!-- แถวที่ 2: กราฟ -->
-    <div class="bg-white shadow-md rounded-lg p-6 mb-6">
-        <h2 class="text-lg font-bold mb-4">สรุปผู้ใช้งานประจำเดือน</h2>
-        <canvas id="userChart" width="400" height="200"></canvas>
-    </div>
+    <div class="bg-white shadow-md rounded-lg p-6 mb-6 noto">
+        <h2 class="text-lg font-bold mb-4 noto">สรุปผู้ใช้อัปโหลดรูปประจำเดือน</h2>
 
+        <form method="GET" action="" class="mb-6 flex items-center space-x-4">
+            <label for="month" class="font-bold text-lg">เลือกเดือน:</label>
+            <select name="month" id="month" class="border border-gray-300 rounded px-4 py-2" onchange="this.form.submit()">
+                {% for m in months %}
+                <option value="{{ m.value }}" {% if m.value == selected_month %}selected{% endif %}>
+                    {{ m.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </form>
+
+        {% if photo_summary and photo_summary|length > 0 %}
+        <div id="userChart" style="width: 100%; height: 400px;"></div>
+        {% else %}
+        <p class="alert">ไม่มีข้อมูลสำหรับเดือนที่เลือก</p>
+        <script>
+            console.log("Photo Summary Debug:", '{{ photo_summary|safe }}');
+            console.log("Alert: No data for the selected month.");
+        </script>
+        {% endif %}
+
+        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+        <script>
+            const photoSummary = JSON.parse('{{ photo_summary|safe }}');
+            console.log("Photo Summary:", photoSummary);
+
+            const labels = photoSummary.map(item => item.uploaded_date); // ใช้เฉพาะวัน
+            const data = photoSummary.map(item => item.total_photos);
+
+            Plotly.newPlot('userChart', [{
+                x: labels,
+                y: data,
+                mode: 'lines+markers',
+                type: 'scatter',
+            }], {
+                title: 'จำนวนรูปภาพที่อัปโหลดในแต่ละวัน',
+                xaxis: { 
+                    title: 'วันที่',
+                    type: 'category',  // บังคับให้แสดงเป็นข้อความ
+                    tickmode: 'linear',
+                },
+                yaxis: { 
+                    title: 'จำนวนรูป', 
+                    tickmode: 'linear',
+                    dtick: 1,
+                    tickformat: '.0f',
+                },
+            });
+        </script>
+        
+    </div>
+    <div id="imageModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex justify-center items-center hidden">
+        <div class="bg-white p-4 rounded-lg shadow-lg w-1/2 relative">
+            <button id="closeModal" class="absolute top-2 right-4 text-gray-700 text-lg font-bold">&times;</button>
+            <img id="modalImage" src="" class="w-full h-auto rounded-lg" alt="Uploaded Image">
+        </div>
+    </div>
     <!-- แถวที่ 3: ตารางข้อมูล -->
     <div class="bg-white p-6 noto">
         <h2 class="text-lg font-bold mb-4">ผู้ส่งรูปการตักบาตร</h2>
-        <div class="overflow-x-auto bg-yellow-100 rounded-lg shadow-lg ">
-        <table class="w-full table-auto">
-            <thead>
-                <tr class="bg-yellow-200 noto">
-                    <th class="p-4 border-b">ชื่อผู้ใช้</th>
-                    <th class="p-4 border-b">เวลา</th>
-                    <th class="p-4 border-b">วันที่</th>
-                    <th class="p-4 border-b">รูปภาพ</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for image in user_images %}
-                <tr class="{% cycle 'hover:bg-yellow-50' 'noto' %}">
-                    <td class="p-4 border-b noto">{{ image.user.username }}</td>
-                    <td class="p-4 border-b noto">{{ image.uploaded_at|time:"H:i" }}</td>
-                    <td class="p-4 border-b noto">{{ image.uploaded_at|date:"d/m/Y" }}</td>
-                    <td class="p-4 border-b text-center noto">
-                        <a href="{{ image.image.url }}" class="text-blue-500 hover:underline" target="_blank">ดู</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="overflow-x-auto bg-yellow-100 rounded-lg shadow-lg">
+            <table class="w-full table-auto">
+                <thead>
+                    <tr class="bg-yellow-200 noto">
+                        <th class="p-4 border-b">ชื่อผู้ใช้</th>
+                        <th class="p-4 border-b">เวลา</th>
+                        <th class="p-4 border-b">วันที่</th>
+                        <th class="p-4 border-b">รูปภาพ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for image in user_images %}
+                    <tr class="{% cycle 'hover:bg-yellow-50' 'noto' %}">
+                        <td class="p-4 border-b noto">{{ image.user.username }}</td>
+                        <td class="p-4 border-b noto">{{ image.uploaded_at|time:"H:i" }}</td>
+                        <td class="p-4 border-b noto">{{ image.uploaded_at|date:"d/m/Y" }}</td>
+                        <td class="p-4 border-b text-center noto">
+                            <a href="#" class="text-blue-500 hover:underline openModal" data-image="{{ image.image.url }}">ดู</a>
+                        </td>                        
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
-
-
-{% load static %}
-<script src="{% static 'js/chart.js' %}"></script>
-
 <script>
-    const ctx = document.getElementById('userChart').getContext('2d');
-    const photoSummary = "{{ photo_summary|safe }}"; // ต้องตรวจสอบว่า photo_summary ถูกต้อง
+    document.addEventListener("DOMContentLoaded", function () {
+        const modal = document.getElementById("imageModal");
+        const modalImage = document.getElementById("modalImage");
+        const closeModal = document.getElementById("closeModal");
 
-    // แปลงข้อมูล photoSummary เป็น array ของ labels และ data
-    const labels = photoSummary.map(item => item.uploaded_date);
-    const data = photoSummary.map(item => item.total_photos);
+        // ค้นหาลิงก์ทั้งหมดที่มี class="openModal"
+        document.querySelectorAll(".openModal").forEach(link => {
+            link.addEventListener("click", function (event) {
+                event.preventDefault(); // ป้องกันการเปลี่ยนหน้า
+                const imageUrl = this.getAttribute("data-image"); // ดึง URL รูป
+                modalImage.src = imageUrl;
+                modal.classList.remove("hidden"); // แสดงป๊อปอัพ
+            });
+        });
 
-    console.log(labels); // Debug: แสดง labels ใน console ของเบราว์เซอร์
-    console.log(data);   // Debug: แสดง data ใน console ของเบราว์เซอร์
+        // ปิดป๊อปอัพเมื่อคลิกปุ่มปิด
+        closeModal.addEventListener("click", function () {
+            modal.classList.add("hidden");
+        });
 
-    const userChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'จำนวนรูปที่ถ่าย',
-                data: data,
-                borderColor: 'rgba(75, 192, 192, 1)',
-                backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                tension: 0.4,
-                fill: true,
-            }],
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    display: true,
-                    position: 'top',
-                },
-            },
-        },
+        // ปิดป๊อปอัพเมื่อคลิกนอก modal
+        modal.addEventListener("click", function (event) {
+            if (event.target === modal) {
+                modal.classList.add("hidden");
+            }
+        });
     });
 </script>
 {% endblock %}

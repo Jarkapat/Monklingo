@@ -1,5 +1,4 @@
 django 
-djongo
 django-tailwind
 gdal 
 geos
@@ -7,3 +6,14 @@ postgresql
 postgis
 folium
 django-leaflet
+plotly
+django-allauth
+PyJWT
+cryptography
+django-allauth 
+django-rest-auth
+dj-rest-auth
+django-sslserver
+channels
+channels-redis
+daphne

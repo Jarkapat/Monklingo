@@ -27,7 +27,15 @@ SECRET_KEY = "django-insecure-eny#s#r94%co^3cq^_%dye!9d55vc5ysyai^=5-wbsfl!d_^7@
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "localhost",
+    "3aa4-49-229-22-70.ngrok-free.app",
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://3aa4-49-229-22-70.ngrok-free.app",
+]
 
 
 # Application definition
@@ -42,9 +50,16 @@ INSTALLED_APPS = [
     'tailwind',
     'monklingo',
     'theme',
-    'django_browser_reload',
     'django.contrib.gis',
-    'rest_framework',
+    'django.contrib.sites',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',  
+    'allauth.socialaccount.providers.facebook',
+    'sslserver',
+    'channels',
+    'django_browser_reload'
 ]
 
 TAILWIND_APP_NAME = 'theme'
@@ -60,7 +75,13 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_browser_reload.middleware.BrowserReloadMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
     
+]
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',  # สำหรับ Username/Password ปกติ
+    'allauth.account.auth_backends.AuthenticationBackend',  # สำหรับ Social Login
 ]
 
 ROOT_URLCONF = "endproject.urls"
@@ -123,7 +144,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = 'Asia/Bangkok'
 
 USE_I18N = True
 
@@ -153,3 +174,62 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 LOGIN_URL = '/login/'
+
+SITE_ID = 2
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',   
+    'allauth.account.auth_backends.AuthenticationBackend',  
+]
+
+LOGIN_REDIRECT_URL = '/routes/'  
+LOGOUT_REDIRECT_URL = '/login/' 
+
+
+ACCOUNT_ALLOW_REGISTRATION = True
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'CLIENT_ID': '321826520516-oga1ff1nhjn5809n2jrdk3td1p5simev.apps.googleusercontent.com',
+        'SECRET': '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',
+        'SCOPE': ['email', 'profile'],
+        'AUTH_PARAMS': {'access_type': 'online'},
+        "OAUTH_PKCE_ENABLED": True,  # เปิดใช้งาน PKCE เพื่อเพิ่มความปลอดภัย
+    },
+    'facebook': {
+        'APP': {
+            'client_id': '1617109942240753',
+            'secret': '68326897fd0477dafe41f5ad2564a8e3',
+        },
+        'METHOD': 'oauth2',
+        'SCOPE': ['email'],
+        
+    },
+}
+
+
+# ✅ ตั้งค่า Social Login ให้สมัครอัตโนมัติ
+SOCIALACCOUNT_LOGIN_ON_GET = True  # ให้ล็อกอินทันทีเมื่อได้รับ Callback จาก Google/Facebook
+ACCOUNT_ADAPTER = "monklingo.adapters.MyAccountAdapter"
+SOCIALACCOUNT_ADAPTER = "monklingo.adapters.MySocialAccountAdapter"
+SOCIALACCOUNT_AUTO_SIGNUP = True  # ให้สมัครบัญชีอัตโนมัติหากยังไม่มี
+ACCOUNT_AUTHENTICATION_METHOD = "username_email"
+ACCOUNT_EMAIL_VERIFICATION = "none"
+ACCOUNT_SIGNUP_REDIRECT_URL = "/routes/"
+
+
+
+ASGI_APPLICATION = 'endproject.asgi.application'  
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",  
+    },
+}
+
+# บังคับใช้ HTTPS
+SECURE_SSL_REDIRECT = True
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https') 
+
+

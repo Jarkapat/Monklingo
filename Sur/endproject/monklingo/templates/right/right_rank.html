@@ -1,19 +1,79 @@
-<aside class="w-80 bg-white  fixed top-0 right-10 h-full mt-10 p-4">
-    <div class="flex justify-between items-center mb-6 noto">
-        <span class="flex items-center text-xl font-bold">
-            🏆 <span class="ml-2">5</span>
-        </span>
-        <span class="flex items-center text-xl font-bold noto">
-            🔥 <span class="ml-2">15 วัน</span>
+<aside class="w-80 bg-white fixed top-0 right-10 h-full mt-10 p-4">
+    <!-- โปรไฟล์ผู้ใช้ -->
+    <div class="flex items-center space-x-4 mb-6">
+        <div class="w-12 h-12 rounded-full overflow-hidden border border-black flex-shrink-0">
+            {% if request.user.profile_picture %}
+            <img src="{{ request.user.profile_picture.url }}" alt="Profile Picture" class="w-full h-full object-cover">
+            {% else %}
+            <div class="w-full h-full flex items-center justify-center bg-gray-200">
+                <i class="text-gray-600 text-lg">👤</i>
+            </div>
+            {% endif %}
+        </div>
+        <span class="text-xl font-bold text-gray-900">
+            {{ request.user.username }}
         </span>
     </div>
 
-    <div class="bg-yellow-100 rounded-lg p-4 noto">
-        <h3 class="text-lg font-bold mb-2">กิจกรรม</h3>
+    <div class="bg-yellow-100 rounded-lg p-4 mb-6 relative border">
+        <div class="flex justify-between items-center mb-2">
+            <h3 class="text-lg font-bold">อันดับ</h3>
+            <a href='/ranking' class="text-gray-500 hover:underline">ดู</a>
+        </div>
+        {% if user_rank and user_rank != "N/A" and user_rank != "None" %}
+            <p class="text-gray-700">คุณอยู่ที่อันดับ #{{ user_rank }}</p>
+        {% else %}
+            <p class="text-gray-700">คุณยังไม่มีอันดับ</p>
+        {% endif %}
+        <p class="text-sm text-gray-600">ตักบาตรเพิ่มขึ้นเพื่อเลื่อนระดับของคุณ...</p>
+    </div>
+
+    <div class="bg-yellow-100 rounded-lg p-4 relative">
+        <div class="flex justify-between items-center mb-2">
+            <h3 class="text-lg font-bold">ข่าวสาร</h3>
+            <a href="/news" class="text-gray-500 text-sm hover:underline">ดู</a>
+        </div>
+        {% if latest_news %}
+        <p class="text-gray-700 font-semibold truncate w-64" title="{{ latest_news.title }}">
+            {{ latest_news.heading|truncatechars:50 }}
+        </p>
+        <p class="text-sm text-gray-600 truncate w-64" title="{{ latest_news.content }}">
+            {{ latest_news.content|truncatechars:100 }}
+        </p>
+        {% else %}
         <p class="text-gray-700">ในขณะนี้ยังไม่มีกิจกรรมอะไร...</p>
+        {% endif %}
     </div>
-
-    <button class="noto w-full bg-blue-500 text-white py-2 px-4 rounded-lg mt-6 hover:bg-blue-600">
-        แชร์ผลงานของคุณ
+    <button class="noto w-full bg-blue-500 text-white py-2 px-4 rounded-lg mt-6 hover:bg-blue-600 border"
+        onclick="shareRanking(this)"
+        data-user-rank="{{ user_rank|default:'N/A' }}"
+        data-user-id="{{ shared_user_id }}">
+        แชร์อันดับของคุณบน Facebook
     </button>
+
+    <script>
+        function shareRanking(button) {
+            var timestamp = new Date().getTime();
+            var userId = button.getAttribute("data-user-id");
+            var shareUrl = "https://bf0d-49-229-22-70.ngrok-free.app/ranking/?user_id=" + userId + "&fbclid=" + timestamp;
+    
+            var userRank = button.getAttribute("data-user-rank");
+    
+            var quote = (userRank !== "N/A") ? 
+                encodeURIComponent("🎉 ฉันอยู่ที่อันดับ #" + userRank + " ใน Monklingo! มาร่วมตักบาตรกัน! 🙏") : 
+                encodeURIComponent("🏆 อันดับสูงสุดใน Monklingo! เช็คอันดับของคุณและตักบาตรเพิ่มขึ้นเพื่อเลื่อนระดับ!");
+    
+            var hashtag = encodeURIComponent("#Monklingo #ตักบาตร");
+    
+            console.log("Sharing URL:", shareUrl); // ✅ ตรวจสอบว่าค่า shareUrl เปลี่ยนทุกครั้ง
+    
+            window.open(
+                "https://www.facebook.com/sharer/sharer.php?u=" + shareUrl + "&quote=" + quote + "&hashtag=" + hashtag,
+                "facebook-share-dialog",
+                "width=600,height=400"
+            );
+            return false;
+        }
+    </script>
+
 </aside>

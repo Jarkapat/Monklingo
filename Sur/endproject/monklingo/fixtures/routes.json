@@ -1,0 +1,11 @@
+[
+    {
+        "model": "monklingo.route",
+        "pk": 1,
+        "fields": {
+            "name": "เส้นทางบิณฑบาตรประจำวัน",
+            "start_time": "06:30:00",
+            "duration": "01:00:00"
+        }
+    }
+]

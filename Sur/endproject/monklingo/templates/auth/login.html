@@ -1,91 +1,154 @@
+{% load socialaccount %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login Form</title>
+  <title>Login Page</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Baloo+Bhai+2:wght@400..800&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@100..900&display=swap" rel="stylesheet">
-    <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/2.6.0/uicons-regular-rounded/css/uicons-regular-rounded.css'>
-    <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/2.6.0/uicons-brands/css/uicons-brands.css'>
-    <style>
-        /* ใช้ฟอนต์ที่มีค่าน้ำหนัก 600 และชื่อคลาสเฉพาะ */
-        .baloo-bhai{
-            font-family: "Baloo Bhai 2", serif;
-            font-optical-sizing: auto;
-            font-weight: 800; /* ปรับเป็นค่า 400 ถึง 800 ตามต้องการ */
-            font-style: normal;
-        }
-        .noto{
-            font-family: "Noto Sans Thai", sans-serif;
-            font-optical-sizing: auto;
-            font-style: normal;
-        }
-        .icon-large {
-            font-size: 50px; /* ปรับขนาดไอคอน */ /* เปลี่ยนสีไอคอน */
-        }
-        .icon-medium {
-            font-size: 30px; /* ปรับขนาดไอคอน */
-        }
-    </style>
-    
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+Bhai+2:wght@400..800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@100..900&display=swap" rel="stylesheet">
+  <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/2.6.0/uicons-regular-rounded/css/uicons-regular-rounded.css'>
+  <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/2.6.0/uicons-brands/css/uicons-brands.css'>
+  <style>
+    .baloo-bhai { font-family: "Baloo Bhai 2", serif; font-weight: 800; }
+    .noto { font-family: "Noto Sans Thai", sans-serif; }
+  </style>
 </head>
-<body class="flex mt-20 justify-center min-h-screen">
-  <div class="absolute top-0 right-5 w-[100px] h-[100px] mt-5">
-      <a href="/register" class="flex items-center justify-center w-100 h-10 bg-white text-black rounded-lg shadow-lg 0 focus:outline-none focus:ring-2 focus:ring-offset-2 noto text-center border border-grey-300">สมัคร</a>
+<body class="flex flex-col items-center justify-center min-h-screen noto">
+
+  <!-- สมัคร -->
+  <div class="absolute top-5 right-5">
+    <a href="/register" class="px-4 py-2 text-sm font-medium text-black bg-white border border-gray-300 rounded-lg shadow-md hover:bg-gray-200">
+      สมัคร
+    </a>
   </div>
 
-  <div class="w-full max-w-md space-y-8 p-8 bg-white ">
+  <!-- กล่องเข้าสู่ระบบ -->
+  <div class="w-full max-w-sm px-8 py-6 bg-white rounded-lg shadow-lg">
     <div class="text-center">
-      <h2 class="mt-6 text-3xl mb-10 text-gray-900 noto">เข้าสู่ระบบ</h2>
-        </div>
-    <form method="POST" action="{% url 'login' %}" class="mt-8 space-y-6">
+      <h2 class="mb-6 text-3xl text-gray-900">เข้าสู่ระบบ</h2>
+    </div>
+
+    <!-- ✅ แสดงข้อความแจ้งเตือน -->
+    {% if messages %}
+      <div id="alert-box" class="mb-4">
+        {% for message in messages %}
+          <div class="p-3 rounded-md text-white
+            {% if message.tags == 'success' %} bg-green-500 {% endif %}
+            {% if message.tags == 'error' %} bg-red-500 {% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <!-- ฟอร์มล็อกอิน -->
+    <form method="POST" action="#" class="space-y-4" onsubmit="return validateLogin()">
       {% csrf_token %}
-      <div class="rounded-md shadow-sm space-y-4">
-
-        <div>
-          <label for="username" class="sr-only">ชื่อผู้ใช้</label>
-          <input id="username" name="username" type="text" required class="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:z-10 sm:text-sm noto" placeholder="ชื่อผู้ใช้หรืออีเมล">
-        </div>
-        <!-- Password -->
-        <div>
-          <label for="password" class="sr-only ">รหัส</label>
-          <input id="password" name="password" type="password" required class="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:z-10 sm:text-sm noto" placeholder="รหัส">
-        </div>
-      </div>
-
-      <!-- Submit Button -->
       <div>
-        <button type="submit" class=" noto group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-400 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 ">
-          เข้าสู่ระบบ
-        </button>
+        <label for="username" class="sr-only">ชื่อผู้ใช้</label>
+        <input id="username" name="username" type="text" placeholder="ชื่อผู้ใช้" required
+          value="{{ request.POST.username|default:'' }}"
+          class="w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        <p id="usernameError" class="text-gray-500 text-sm mt-1">⚠ ต้องกรอกชื่อผู้ใช้</p>
       </div>
-  </form>
+      <div>
+        <label for="password" class="sr-only">รหัสผ่าน</label>
+        <div class="relative">
+          <input id="password" name="password" type="password" placeholder="รหัสผ่าน" required
+            class="w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          <span onclick="togglePassword('password')" class="absolute inset-y-0 right-3 flex items-center cursor-pointer">
+            <i class="fi fi-rr-eye icon-medium"></i>
+          </span>
+        </div>
+        <p id="passwordError" class="text-gray-500 text-sm mt-1">⚠ ต้องกรอกรหัสผ่าน</p>
+      </div>
+      <button type="submit"
+        class="w-full px-4 py-2 text-sm font-medium text-white bg-blue-400 hover:bg-blue-600 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400">
+        เข้าสู่ระบบ
+      </button>
+    </form>
 
-
+    <!-- เส้นแบ่ง -->
     <div class="flex items-center my-6">
-      <div class="flex-grow border-t border-gray-300"></div>
-      <span class="mx-4 text-gray-500 noto">หรือ</span>
-      <div class="flex-grow border-t border-gray-300"></div>
+      <div class="w-full border-t border-gray-300"></div>
+      <span class="px-3 text-sm text-gray-500">หรือ</span>
+      <div class="w-full border-t border-gray-300"></div>
     </div>
 
-    <!-- Google and Facebook Buttons -->
-    <div class="flex justify-between space-x-4">
-      <!-- Google Button (Left) -->
-      <button class=" noto flex items-center justify-center w-48 py-2 px-4 border border-gray-300 text-gray-800 rounded-lg shadow-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400">
-        <i class="fi fi-brands-google mr-3"></i>
-        Google
-      </button>
+    <!-- ปุ่มล็อกอินโซเชียล -->
+    <div class="flex space-x-4">
+      <!-- ✅ Google Login (ข้าม Continue Page) -->
+      <a href="{% provider_login_url 'google' process='login' auth_params='prompt=select_account' %}" 
+         class="noto flex items-center justify-center w-48 py-2 px-4 border border-gray-300 
+                text-gray-800 rounded-lg shadow-lg hover:bg-gray-100 focus:outline-none 
+                focus:ring-2 focus:ring-offset-2 focus:ring-gray-400">
+          <i class="fi fi-brands-google mr-3"></i> Google
+      </a>
+  
+      <!-- ✅ Facebook Login (ข้าม Continue Page) -->
+      <a href="{% provider_login_url 'facebook' process='login' %}" 
+         class="noto flex items-center justify-center w-48 py-2 px-4 border border-gray-300 
+                text-gray-800 rounded-lg shadow-lg hover:bg-gray-100 focus:outline-none 
+                focus:ring-2 focus:ring-offset-2 focus:ring-gray-400">
+          <i class="fi fi-brands-facebook mr-3"></i> Facebook
+      </a>
+  </div>
 
-      <!-- Facebook Button (Right) -->
-      <button class="noto flex items-center justify-center w-48 py-2 px-4 border border-gray-300 text-gray-800 rounded-lg shadow-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400">
-        <i class="fi fi-brands-facebook mr-3 "></i>
-        Facebook
-      </button>
-    </div>
+  <!-- ✅ สคริปต์ -->
+  <script>
+    // ✅ ฟังก์ชันเปิด/ปิดรหัสผ่าน
+    function togglePassword(id) {
+        let input = document.getElementById(id);
+        input.type = input.type === "password" ? "text" : "password";
+    }
+
+    // ✅ ทำให้แจ้งเตือนหายไปอัตโนมัติ
+    setTimeout(function() {
+        let alertBox = document.getElementById('alert-box');
+        if (alertBox) {
+          alertBox.style.transition = "opacity 0.5s ease";
+          alertBox.style.opacity = "0";
+          setTimeout(() => alertBox.remove(), 500);
+        }
+      }, 3000);
+
+    // ✅ ตรวจสอบข้อมูลก่อนส่งฟอร์ม
+    function validateLogin() {
+        let username = document.getElementById("username").value;
+        let password = document.getElementById("password").value;
+
+        let usernameError = document.getElementById("usernameError");
+        let passwordError = document.getElementById("passwordError");
+
+        let isValid = true;
+
+        // ตรวจสอบว่าชื่อผู้ใช้ว่างหรือไม่
+        if (username.trim() === "") {
+            usernameError.classList.remove("text-gray-500");
+            usernameError.classList.add("text-red-500");
+            isValid = false;
+        } else {
+            usernameError.classList.add("text-gray-500");
+            usernameError.classList.remove("text-red-500");
+        }
+
+        // ตรวจสอบว่ารหัสผ่านว่างหรือไม่
+        if (password.trim() === "") {
+            passwordError.classList.remove("text-gray-500");
+            passwordError.classList.add("text-red-500");
+            isValid = false;
+        } else {
+            passwordError.classList.add("text-gray-500");
+            passwordError.classList.remove("text-red-500");
+        }
+
+        return isValid;
+    }
+  </script>
 
 </body>
 </html>

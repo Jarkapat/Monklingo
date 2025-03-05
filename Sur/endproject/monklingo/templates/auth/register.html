@@ -43,28 +43,58 @@
       <h2 class="mt-6 text-3xl mb-10 text-gray-900 noto">สร้างโปรไฟล์ของคุณ</h2>
     </div>
 
-    <form method="POST" enctype="multipart/form-data" class="mt-8 space-y-6">
+    <div id="alert-box" class="mb-4">
+      {% for message in messages %}
+        <div class="p-3 rounded-md text-white
+          {% if message.tags == 'success' %} bg-green-500 {% endif %}
+          {% if message.tags == 'error' %} bg-red-500 {% endif %}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+
+    <form id="registerForm" method="POST" enctype="multipart/form-data" class="mt-8 space-y-6" onsubmit="return validateForm()">
       {% csrf_token %}
       <div class="rounded-md shadow-sm space-y-4">
-
+        
+        <!-- ชื่อผู้ใช้ -->
         <div>
           <label for="username" class="sr-only">ชื่อผู้ใช้</label>
-          <input id="username" name="username" type="text" required class="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:z-10 sm:text-sm noto" placeholder="ชื่อผู้ใช้หรืออีเมล">
+          <input id="username" name="username" type="text" required 
+            class="appearance-none rounded-lg block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none sm:text-sm noto"
+            placeholder="ชื่อผู้ใช้">
+          <p id="usernameError" class="text-sm text-gray-500 mt-1">⚠ ต้องมีอย่างน้อย 4 ตัวอักษร</p>
         </div>
-        <!-- Password -->
-        <div>
-          <label for="password" class="sr-only ">รหัส</label>
-          <input id="password1" name="password1" type="password" required class="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:z-10 sm:text-sm noto" placeholder="รหัส">
+    
+        <!-- รหัสผ่าน -->
+        
+        <div class="relative">
+          <label for="password1" class="sr-only">รหัสผ่าน</label>
+          <input id="password1" name="password1" type="password" required 
+            class="appearance-none rounded-lg block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none sm:text-sm noto"
+            placeholder="รหัสผ่าน">
+          <button type="button" class="absolute right-3 top-[40%] transform -translate-y-1/2 text-gray-600" onclick="togglePassword('password1')">
+            <i class="fi fi-rr-eye icon-small"></i>
+          </button>
+          <p id="passwordError" class="text-sm text-gray-500 mt-1">⚠ ต้องมีตัวเลข, และตัวอักษร อย่างน้อย 8 ตัว</p>
         </div>
-        <div>
-            <label for="password" class="sr-only ">ยืนยันรหัสผ่าน</label>
-            <input id="password2" name="password2" type="password" required class="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:z-10 sm:text-sm noto" placeholder="ยืนยันรหัสผ่าน">
-          </div>
-      </div>
 
-      <!-- Submit Button -->
+        <!-- ยืนยันรหัสผ่าน -->
+        <div class="relative">
+          <label for="password2" class="sr-only">ยืนยันรหัสผ่าน</label>
+          <input id="password2" name="password2" type="password" required 
+            class="appearance-none rounded-lg block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none sm:text-sm noto"
+            placeholder="ยืนยันรหัสผ่าน">
+          <button type="button" class="absolute right-3 top-[40%] transform -translate-y-1/2 text-gray-600" onclick="togglePassword('password2')">
+            <i class="fi fi-rr-eye icon-small"></i>
+          </button>
+          <p id="confirmPasswordError" class="text-sm text-gray-500 mt-1">⚠ รหัสผ่านต้องตรงกัน</p>
+        </div>
+            
+      </div>
+      
       <div>
-        <button type="submit" class=" noto group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-400 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 ">
+        <button type="submit" class="noto w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-400 hover:bg-blue-600 focus:outline-none focus:ring-2">
           สร้างบัญชีผู้ใช้
         </button>
       </div>
@@ -76,19 +106,88 @@
     </div>
 
     <!-- Google and Facebook Buttons -->
-    <div class="flex justify-between space-x-4">
-      <!-- Google Button (Left) -->
-      <button class="flex items-center justify-center w-48 py-2 px-4 border border-gray-300 text-gray-800 rounded-lg shadow-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400">
-        <i class="fi fi-brands-google mr-3"></i>
-        Google
-      </button>
-
-      <!-- Facebook Button (Right) -->
-      <button class="flex items-center justify-center w-48 py-2 px-4 border border-gray-300 text-gray-800 rounded-lg shadow-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400">
-        <i class="fi fi-brands-facebook mr-3"></i>
-        Facebook
-      </button>
-    </div>
+    <div class="flex space-x-4">
+      <!-- ✅ Google Login (ข้าม Continue Page) -->
+      <a href="{% provider_login_url 'google' process='login' auth_params='prompt=select_account' %}" 
+         class="noto flex items-center justify-center w-48 py-2 px-4 border border-gray-300 
+                text-gray-800 rounded-lg shadow-lg hover:bg-gray-100 focus:outline-none 
+                focus:ring-2 focus:ring-offset-2 focus:ring-gray-400">
+          <i class="fi fi-brands-google mr-3"></i> Google
+      </a>
+  
+      <!-- ✅ Facebook Login (ข้าม Continue Page) -->
+      <a href="{% provider_login_url 'facebook' process='login' %}" 
+         class="noto flex items-center justify-center w-48 py-2 px-4 border border-gray-300 
+                text-gray-800 rounded-lg shadow-lg hover:bg-gray-100 focus:outline-none 
+                focus:ring-2 focus:ring-offset-2 focus:ring-gray-400">
+          <i class="fi fi-brands-facebook mr-3"></i> Facebook
+      </a>
+  </div>
     
 </body>
 </html>
+<script>
+  // ✅ ฟังก์ชันเปิด/ปิดรหัสผ่าน
+    // ✅ ฟังก์ชันเปิด/ปิดรหัสผ่าน
+    function togglePassword(id) {
+      let input = document.getElementById(id);
+      input.type = input.type === "password" ? "text" : "password";
+  }
+
+  // ✅ ทำให้แจ้งเตือนหายไปอัตโนมัติ
+  setTimeout(function() {
+      let alertBox = document.getElementById('alert-box');
+      if (alertBox) {
+        alertBox.style.transition = "opacity 0.5s ease";
+        alertBox.style.opacity = "0";
+        setTimeout(() => alertBox.remove(), 500);
+      }
+    }, 3000);
+
+  // ✅ ฟังก์ชันตรวจสอบฟอร์มก่อนส่ง
+  function validateForm() {
+      let username = document.getElementById("username").value;
+      let password1 = document.getElementById("password1").value;
+      let password2 = document.getElementById("password2").value;
+
+      let usernameError = document.getElementById("usernameError");
+      let passwordError = document.getElementById("passwordError");
+      let confirmPasswordError = document.getElementById("confirmPasswordError");
+
+      let isValid = true;
+
+      // ✅ ตรวจสอบ Username (ต้องมีอย่างน้อย 4 ตัวอักษร)
+      if (username.length < 4) {
+          usernameError.classList.remove("text-gray-500");
+          usernameError.classList.add("text-red-500");
+          isValid = false;
+      } else {
+          usernameError.classList.add("text-gray-500");
+          usernameError.classList.remove("text-red-500");
+      }
+
+      // ✅ ตรวจสอบรหัสผ่าน (มีแค่ตัวอักษร และ ตัวเลข อย่างน้อย 8 ตัว)
+      let passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;  // ❌ ไม่มีอักขระพิเศษ
+      if (!passwordRegex.test(password1)) {
+          passwordError.classList.remove("text-gray-500");
+          passwordError.classList.add("text-red-500");
+          isValid = false;
+      } else {
+          passwordError.classList.add("text-gray-500");
+          passwordError.classList.remove("text-red-500");
+      }
+
+      // ✅ ตรวจสอบการยืนยันรหัสผ่าน
+      if (password1 !== password2) {
+          confirmPasswordError.classList.remove("text-gray-500");
+          confirmPasswordError.classList.add("text-red-500");
+          isValid = false;
+      } else {
+          confirmPasswordError.classList.add("text-gray-500");
+          confirmPasswordError.classList.remove("text-red-500");
+      }
+
+      return isValid;
+  }
+
+</script>
