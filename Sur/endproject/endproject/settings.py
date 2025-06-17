@@ -30,11 +30,11 @@ DEBUG = True
 ALLOWED_HOSTS = [
     "127.0.0.1",
     "localhost",
-    "3aa4-49-229-22-70.ngrok-free.app",
+    ".ngrok-free.app",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://3aa4-49-229-22-70.ngrok-free.app",
+    "https://0730-49-229-22-67.ngrok-free.app",
 ]
 
 
@@ -59,7 +59,8 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.facebook',
     'sslserver',
     'channels',
-    'django_browser_reload'
+    'django_browser_reload',
+    'django_extensions',
 ]
 
 TAILWIND_APP_NAME = 'theme'

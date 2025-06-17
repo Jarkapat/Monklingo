@@ -5,7 +5,15 @@
 <main class="flex-grow p-6 bg-white">
     <div class="max-w-4xl mx-auto">
         <h1 class="text-3xl font-bold text-[#E2A226] mb-6 baloo-bhai">ห้องแชท: {{ chatroom.name }}</h1>
-
+        <button class="px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring focus:ring-blue-300 noto">
+            <a href="/chat/">กลับหน้าแชท</a>
+        </button>
+        <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-0 flex justify-center items-center hidden  border-black rounded-lg shadow-lg">
+            <div class="relative bg-white p-4 rounded-lg shadow-lg max-w-md">
+                <button id="closeModal" class="absolute top-2 right-2 text-gray-500 hover:text-gray-800 text-xl">&times;</button>
+                <img id="modalImage" src="" class="max-w-full h-auto rounded-lg">
+            </div>
+        </div>
         <!-- Message List -->
         <div class="p-4 rounded-lg shadow overflow-y-auto h-[500px] mb-6">
             <ul class="space-y-4" id="message-list">
@@ -20,7 +28,7 @@
                         <img src="{{ message.image.url }}" alt="Image" class="w-32 h-auto rounded-lg shadow mt-2">
                         {% endif %}
                         {% if message.file %}
-                        <a href="{{ message.file.url }}" class="hover:underline text-blue-500 mt-2 block" download>ดาวน์โหลดไฟล์: {{ message.file.name }}</a>
+                        <a href="{{ message.file.url }}" class="hover:underline text-blue-500 mt-2 block" download> {{ message.file.name }}</a>
                         {% endif %}
                         <small class="block text-xs mt-2">{{ message.timestamp|date:"d/m/Y H:i" }}</small>
                     </div>
@@ -29,59 +37,101 @@
             </ul>
         </div>
 
-        <!-- Message Form -->
-        <form method="POST" enctype="multipart/form-data" class="bg-gray-100 p-4 rounded-lg shadow-lg">
+        <form method="POST" enctype="multipart/form-data" class="bg-gray-100 p-4 rounded-lg shadow-lg" id="chat-form">
             {% csrf_token %}
-            <textarea name="content" placeholder="พิมพ์ข้อความ..." rows="3" class="w-full border rounded-lg p-2 mb-4"></textarea>
+            <textarea name="content" id="message-input" placeholder="พิมพ์ข้อความ..." rows="3" class="w-full border rounded-lg p-2 mb-4"></textarea>
+            
+            <!-- แสดงตัวอย่างไฟล์/รูปภาพ -->
+            <div id="preview-container" class="hidden mb-4">
+                <div id="image-preview" class="mb-2"></div> <!-- รูปภาพที่เลือก -->
+                <div id="file-preview" class="text-blue-500"></div> <!-- ชื่อไฟล์ -->
+            </div>
+        
             <div class="flex items-center space-x-4">
                 <label for="image-upload" class="cursor-pointer"><i class="fi fi-rr-picture text-blue-500 text-2xl hover:text-blue-700"></i></label>
                 <input id="image-upload" type="file" name="image" accept="image/*" class="hidden">
+        
                 <label for="file-upload" class="cursor-pointer"><i class="fi fi-rr-file text-green-500 text-2xl hover:text-green-700"></i></label>
                 <input id="file-upload" type="file" name="file" class="hidden">
             </div>
-            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 mt-4">ส่งข้อความ</button>
+        
+            <button type="submit" id="send-button" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 mt-4" disabled>ส่งข้อความ</button>
         </form>
-    </div>
-</main>
-
+        <!-- ✅ Modal Popup สำหรับแสดงรูปภาพ -->
+        
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        const form = document.querySelector("form");
+        const form = document.querySelector("#chat-form");
+        const messageInput = document.querySelector("#message-input");
+        const imageUpload = document.querySelector("#image-upload");
+        const fileUpload = document.querySelector("#file-upload");
+        const previewContainer = document.querySelector("#preview-container");
+        const imagePreview = document.querySelector("#image-preview");
+        const filePreview = document.querySelector("#file-preview");
+        const sendButton = document.querySelector("#send-button");
         const messageList = document.querySelector("#message-list");
         const roomId = {{ chatroom.id }};
+        
+        // ✅ อ้างอิง Element ของ Modal Popup
+        const modal = document.getElementById("imageModal");
+        const modalImage = document.getElementById("modalImage");
+        const closeModal = document.getElementById("closeModal");
 
-        async function fetchMessages() {
-            try {
-                const response = await fetch(`/chat/${roomId}/messages/`);
-                if (response.ok) {
-                    const messages = await response.json();
-                    messageList.innerHTML = "";
-                    messages.forEach(message => {
-                        const messageHTML = `
-                            <li class="flex ${message.sender === "{{ request.user.username }}" ? 'justify-end' : 'justify-start'}">
-                                <div class="${message.sender === "{{ request.user.username }}" ? 'bg-blue-400 text-white' : 'bg-gray-200 text-black'} p-4 rounded-lg shadow-md max-w-xs">
-                                    <strong>${message.sender === "{{ request.user.username }}" ? 'คุณ' : message.sender}</strong>
-                                    <p class="mt-2">${message.content || ''}</p>
-                                    ${message.image ? `<img src="${message.image}" class="w-32 h-auto rounded-lg mt-2">` : ''}
-                                    ${message.file ? `<a href="${message.file}" class="text-blue-500 hover:underline mt-2 block">ดาวน์โหลดไฟล์</a>` : ''}
-                                    <small class="block text-xs mt-2">${message.timestamp}</small>
-                                </div>
-                            </li>
-                        `;
-                        messageList.innerHTML += messageHTML;
-                    });
-                }
-            } catch (error) {
-                console.error("Error fetching messages:", error);
+        // ✅ ฟังก์ชันตรวจสอบว่ามีข้อมูลหรือไม่ (ข้อความ / รูป / ไฟล์)
+        function checkSendButton() {
+            if (messageInput.value.trim() !== "" || imageUpload.files.length > 0 || fileUpload.files.length > 0) {
+                sendButton.disabled = false;
+            } else {
+                sendButton.disabled = true;
             }
         }
 
-        setInterval(fetchMessages, 3000); // Refresh messages every 3 seconds
+        // ✅ อัปเดตปุ่มเมื่อพิมพ์ข้อความ
+        messageInput.addEventListener("input", checkSendButton);
 
-        form.onsubmit = async function (e) {
+        // ✅ แสดงตัวอย่างรูปภาพ
+        imageUpload.addEventListener("change", function () {
+            imagePreview.innerHTML = "";
+            filePreview.innerHTML = "";
+
+            if (this.files.length > 0) {
+                const file = this.files[0];
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    imagePreview.innerHTML = `<img src="${e.target.result}" class="w-24 h-24 rounded-lg shadow-md">`;
+                    previewContainer.classList.remove("hidden");
+                };
+                reader.readAsDataURL(file);
+            } else {
+                previewContainer.classList.add("hidden");
+            }
+            checkSendButton();
+        });
+
+        // ✅ แสดงตัวอย่างไฟล์แนบ
+        fileUpload.addEventListener("change", function () {
+            filePreview.innerHTML = "";
+            imagePreview.innerHTML = "";
+
+            if (this.files.length > 0) {
+                const file = this.files[0];
+                filePreview.innerHTML = `<p>📎 ไฟล์ที่เลือก: ${file.name}</p>`;
+                previewContainer.classList.remove("hidden");
+            } else {
+                previewContainer.classList.add("hidden");
+            }
+            checkSendButton();
+        });
+
+        // ✅ ป้องกันการส่งข้อความว่างเปล่า
+        form.addEventListener("submit", async function (e) {
             e.preventDefault();
-            const formData = new FormData(form);
+            if (messageInput.value.trim() === "" && imageUpload.files.length === 0 && fileUpload.files.length === 0) {
+                alert("กรุณาพิมพ์ข้อความ หรือแนบรูป/ไฟล์ก่อนส่ง");
+                return;
+            }
 
+            const formData = new FormData(form);
             const response = await fetch(form.action, {
                 method: "POST",
                 body: formData,
@@ -92,11 +142,87 @@
 
             if (response.ok) {
                 form.reset();
-                fetchMessages();
+                previewContainer.classList.add("hidden"); // ซ่อนตัวอย่างไฟล์หลังจากส่งข้อความ
+                checkSendButton();
+                fetchMessages(); // โหลดข้อความใหม่
             } else {
                 alert("เกิดข้อผิดพลาด: ไม่สามารถส่งข้อความได้");
             }
-        };
+        });
+
+        // ✅ ดึงข้อความใหม่ทุก 3 วินาที
+        async function fetchMessages() {
+            try {
+                const response = await fetch(`/chat/${roomId}/messages/`);
+                if (response.ok) {
+                    const messages = await response.json();
+                    messageList.innerHTML = ""; // ล้างข้อความเก่า
+                    messages.forEach(message => {
+                        let content = message.content || '';
+                        let isLong = content.length > 100;
+                        let shortContent = isLong ? content.substring(0, 100) + '...' : content;
+
+                        let fileName = message.file ? message.file.split('/').pop() : null;
+                        let shortFileName = fileName && fileName.length > 15
+                            ? fileName.substring(0, 10) + '…' + fileName.split('.').pop()
+                            : fileName;
+
+                        const messageHTML = `
+                            <li class="flex ${message.sender === "{{ request.user.username }}" ? 'justify-end' : 'justify-start'}">
+                                <div class="${message.sender === "{{ request.user.username }}" ? 'bg-blue-400 text-white' : 'bg-gray-200 text-black'} p-4 rounded-lg shadow-md max-w-xs">
+                                    <strong>${message.sender === "{{ request.user.username }}" ? 'คุณ' : message.sender}</strong>
+                                    <p class="mt-2 message-content">
+                                        <span class="short-text">${shortContent}</span>
+                                        <span class="full-text hidden">${content}</span>
+                                        ${isLong ? `<span class="text-blue-500 cursor-pointer read-more"> อ่านเพิ่มเติม</span>` : ""}
+                                    </p>
+                                    ${message.image ? `<img src="${message.image}" class="w-32 h-auto rounded-lg mt-2 openModal" data-image="${message.image}">` : ''}
+                                    ${message.file ? `<a href="${message.file}" class="text-blue-500 hover:underline mt-2 block" download>${shortFileName}</a>` : ''}
+                                    <small class="block text-xs mt-2">${message.timestamp}</small>
+                                </div>
+                            </li>
+                        `;
+                        messageList.innerHTML += messageHTML;
+                    });
+
+                    // ✅ เพิ่ม Event ให้ปุ่ม "อ่านเพิ่มเติม"
+                    document.querySelectorAll(".read-more").forEach(el => {
+                        el.addEventListener("click", function () {
+                            const parent = this.closest(".message-content");
+                            parent.querySelector(".short-text").classList.add("hidden"); // ซ่อนข้อความย่อ
+                            parent.querySelector(".full-text").classList.remove("hidden"); // แสดงข้อความเต็ม
+                            this.remove(); // ลบปุ่ม "อ่านเพิ่มเติม" ออกไป
+                        });
+                    });
+
+                    // ✅ เพิ่ม Event ให้รูปภาพทุกภาพเพื่อเปิด Modal
+                    document.querySelectorAll(".openModal").forEach(img => {
+                        img.addEventListener("click", function () {
+                            modalImage.src = this.getAttribute("data-image");
+                            modal.classList.remove("hidden");
+                        });
+                    });
+                }
+            } catch (error) {
+                console.error("Error fetching messages:", error);
+            }
+        }
+
+
+
+        setInterval(fetchMessages, 3000); // รีเฟรชข้อความทุก 3 วินาที
+
+        // ✅ ปิด Modal เมื่อกดปุ่มปิด หรือคลิกนอกภาพ
+        closeModal.addEventListener("click", function () {
+            modal.classList.add("hidden");
+        });
+
+        modal.addEventListener("click", function (event) {
+            if (event.target === modal) {
+                modal.classList.add("hidden");
+            }
+        });
     });
+
 </script>
 {% endblock %}

@@ -29,7 +29,7 @@
         <p class="text-sm text-gray-600">ตักบาตรเพิ่มขึ้นเพื่อเลื่อนระดับของคุณ...</p>
     </div>
 
-    {% if request.user.is_superuser %}
+    {% if request.user.is_superuser or request.user.is_staff %}
     <div class="bg-yellow-500 rounded-lg text-white text-center py-3 cursor-pointer mt-6 hover:bg-yellow-600 border"
         onclick="openPostPopup()">
         สร้างโพสต์ข่าวสาร
@@ -67,6 +67,10 @@
            <label for="url" class="block text-gray-700 font-bold mb-2">ลิงก์</label>
            <input type="url" id="url" name="url" class="w-full border-gray-300 rounded-md p-2 border">
        </div>
+       <div class="mb-4">
+            <label for="age" class="block text-gray-700 font-bold mb-2">อายุ</label>
+            <input type="text" id="age" name="age" class="w-full border-gray-300 rounded-md p-2 border">
+        </div>
        <div class="flex justify-end">
            <button type="button" onclick="closePostPopup()" class="bg-gray-400 text-white py-2 px-4 rounded-lg hover:bg-gray-500 mr-2">ยกเลิก</button>
            <button type="submit" class="bg-yellow-500 text-white py-2 px-4 rounded-lg hover:bg-yellow-600">บันทึก</button>

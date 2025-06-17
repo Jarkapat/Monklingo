@@ -10,16 +10,21 @@ urlpatterns = [
     path('', HomeView.as_view(), name='home'),
     path('register/', views.register_view, name='register'),
     path('login/', login_view , name='login'),
+    path("api/user-info/", user_info, name="user_info"),
     
 
     path('routes/', route_list, name='route_list'),
     path('api/routes/', list_routes, name='list_routes'),
     path('api/routes/add/', add_route, name='add_route'),
+    path("api/routes/<int:route_id>/update/", update_route, name="update_route"),
     path('manage/routes/', manage_routes , name='manage_routes'),
-    path('api/routes/<int:route_id>/update/', update_route, name='update_route'),
     path('api/routes/<int:route_id>/delete/', delete_route, name='delete_route'),
     path('check-daily-photo/', check_daily_photo, name='check_daily_photo'),
     path('capture/', capture_view, name='capture'),
+    path("api/events/add/", add_event, name="add_event"),
+    path("api/events/", list_events, name="list_events"),
+    path("api/events/<int:temple_id>/", list_events, name="list_events"),
+    path("api/events/<int:event_id>/delete/", delete_event, name="delete_event"),
 
     path('api/routes/<int:route_id>/checkpoints/', list_checkpoints, name='list_checkpoints'),
     path('api/routes/<int:route_id>/checkpoints/add/', add_checkpoint, name='add_checkpoint'),
@@ -28,6 +33,7 @@ urlpatterns = [
 
     path('api/routes/<int:temple_id>/', get_routes_by_temple, name='routes_by_temple'),
     path("api/temples/", temple_list, name="temple-list"),
+    path("api/temples/<int:temple_id>/update/", update_temple, name="update_temple"),
     path("api/temples/add/", add_temple, name="add-temple"),
     path("api/temples/<int:temple_id>/delete/", delete_temple, name="delete_temple"),
     path('upload-image/', upload_image, name='upload_image'),

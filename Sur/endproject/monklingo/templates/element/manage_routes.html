@@ -6,14 +6,60 @@
   <button class="px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring focus:ring-blue-300 noto">
   <a href="/routes">กลับไปหน้าเส้นทาง</a>
   </button>
+  <div class="bg-white shadow-md rounded-lg p-6 mt-6 max-w-2xl">
+    <h2 class="text-xl font-bold mb-4">เพิ่มเหตุการณ์พิเศษ</h2>
+
+    <form id="addEventForm">
+        
+        <label class="block text-gray-600 mb-2">เลือกวัด:</label>
+        <select id="event_temple_select" onchange="fetchRoutes()" required class="border p-2 rounded-md w-full"></select>
+        
+        <label class="block text-gray-600 mb-2 mt-4">เลือกวันที่:</label>
+        <input type="date" id="event_date" required class="border p-2 rounded-md w-full">
+
+        <label class="block text-gray-600 mt-4">ประเภทเหตุการณ์:</label>
+        <select id="event_type" required class="border p-2 rounded-md w-full">
+            <option value="buddhist_day">📌 วันพระ</option>
+            <option value="special_event">⚠️ กิจนิมนต์</option>
+            <option value="weather">🌧️ สภาพอากาศ</option>
+            <option value="other">🗓️ เหตุการณ์อื่นๆ</option>
+        </select>
+
+        <label class="block text-gray-600 mt-4">รายละเอียด:</label>
+        <input type="text" id="event_description" placeholder="เช่น พระติดกิจนิมนต์, ฝนตกหนัก" required class="border p-2 rounded-md w-full">
+
+        <label class="block text-gray-600 mt-4">งดบิณฑบาตหรือไม่?</label>
+        <input type="checkbox" id="is_canceled" class="mr-2"> ใช่ (หากเลือก พระจะไม่เดินบิณฑบาต)
+
+        <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-4">
+            เพิ่มเหตุการณ์
+        </button>
+    </form>
+
+
+<!-- ✅ แสดง Event ตามวัดที่เลือก -->
+<div class="bg-white shadow-md rounded-lg p-6 mt-6 max-w-2xl">
+    <h2 class="text-xl font-bold mb-4">รายการเหตุการณ์</h2>
+    <select id="event_temple_filter" onchange="fetchEvents()" class="border p-2 rounded-md w-full mb-4"></select>
+    <ul id="event_list" class="space-y-2"></ul>
+</div>
+</div>
   <!-- ✅ เพิ่มวัด -->
+    
   <div class="bg-white shadow-md rounded-lg p-6 mt-6 max-w-2xl">
     <h2 class="text-xl font-bold mb-4">เพิ่มวัดใหม่</h2>
     <input type="text" id="temple_name" placeholder="ชื่อวัด" class="border p-2 rounded-md w-full">
-    <input type="text" id="temple_location" placeholder="ที่ตั้ง (ไม่บังคับ)" class="border p-2 rounded-md w-full mt-2">
-    <button onclick="addTemple()" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded mt-4">
-      เพิ่มวัด
-    </button>
+
+    
+    {% if not request.user.is_staff or not request.user.assigned_temple %}
+        <button id="addTempleButton" onclick="addTemple()" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded mt-4">
+            เพิ่มวัด
+        </button>
+    {% else %}
+        <p id="templeWarning" class="text-red-500">❌ คุณสามารถมีได้แค่วัดเดียว</p>
+    {% endif %}
+
+
       <!-- ✅ เพิ่มเส้นทาง -->
     <h2 class="text-xl font-bold mb-4 mt-4">เพิ่มเส้นทางใหม่</h2>
     <label for="new_route_temple">วัด:</label>
@@ -28,7 +74,6 @@
     <h2 class="text-xl font-bold mb-4 mt-4">รายชื่อวัด</h2>
     <div id="temple_list" class="space-y-2"></div> 
   </div>
-
   <!-- ✅ แผนที่ -->
   <div id="map" class="w-full sm:w-[800px] h-[500px] border border-black mt-6"></div>
 
@@ -71,18 +116,30 @@
   </div>
 </div>
 </div>
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<!-- Routing Machine CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Routing Machine JS -->
+<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+    var CURRENT_USER_ID = "{{ request.user.id }}";
+    var IS_SUPERUSER = "{{ request.user.is_superuser|yesno:'true,false' }}";
+</script>
 <script>
 let map, currentRouteId;
 let checkpointMarkers = [];
 let routePolyline = null;
 
-window.onload = function () {
-    console.log("✅ Window fully loaded, initializing map...");
-    initMap();
-    fetchTemples(); // โหลดวัดทั้งหมด
-};
+
+
 
 function initMap() {
     map = L.map("map").setView([13.736717, 100.523186], 13);
@@ -93,6 +150,137 @@ function initMap() {
     map.on("click", function (e) {
         addCheckpoint(e.latlng.lat, e.latlng.lng);
     });
+}
+window.onload = function () {
+    console.log("✅ Window fully loaded, initializing map...");
+    initMap();
+    fetchTemples();
+    fetchTemplesForEvents(); // โหลดวัดทั้งหมด
+};
+async function fetchTemplesForEvents() {
+    try {
+        let response = await fetch("/api/temples/");
+        let temples = await response.json();
+
+        let eventSelect = document.getElementById("event_temple_select");
+        let filterSelect = document.getElementById("event_temple_filter");
+
+        eventSelect.innerHTML = filterSelect.innerHTML = `<option value="">-- กรุณาเลือกวัด --</option>`;
+
+        temples.forEach(temple => {
+            let option = document.createElement("option");
+            option.value = temple.id;
+            option.textContent = temple.name;
+            eventSelect.appendChild(option);
+            filterSelect.appendChild(option.cloneNode(true));
+        });
+
+    } catch (error) {
+        console.error("❌ ไม่สามารถโหลดวัดได้:", error);
+    }
+}
+
+// ✅ เพิ่มเหตุการณ์ใหม่
+document.getElementById("addEventForm").addEventListener("submit", async function (e) {
+    e.preventDefault();
+
+    let templeId = document.getElementById("event_temple_select").value;
+    let date = document.getElementById("event_date").value;
+    let type = document.getElementById("event_type").value;
+    let description = document.getElementById("event_description").value;
+    let isCanceled = document.getElementById("is_canceled").checked;
+
+    let response = await fetch("/api/events/add/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            temple_id: templeId,
+            date: date,
+            event_type: type,
+            description: description,
+            is_canceled: isCanceled
+        })
+    });
+
+    let result = await response.json();
+
+    if (response.ok) {
+        alert(result.message);
+        fetchEvents(templeId); // ✅ โหลด event ใหม่
+    } else {
+        alert(`❌ ไม่สามารถเพิ่มเหตุการณ์ได้: ${result.error}`);
+    }
+});
+
+document.addEventListener("DOMContentLoaded", async function() {
+    let response = await fetch("/api/user-info/");
+    let user = await response.json();
+
+    if (user.is_staff && user.assigned_temple) {
+        document.getElementById("addTempleButton").style.display = "none";
+        document.getElementById("templeWarning").style.display = "block";
+    }
+});
+
+// ✅ ดึงรายการเหตุการณ์ของวัดที่เลือก
+async function fetchEvents() {
+    let templeId = document.getElementById("event_temple_filter").value;
+    if (!templeId) return;
+
+    try {
+        // ลบเหตุการณ์ที่มีอยู่ก่อน
+        let eventList = document.getElementById("event_list");
+        eventList.innerHTML = "";
+
+        // ทำการดึงข้อมูลเหตุการณ์ของวัดที่เลือก
+        let response = await fetch(`/api/events/${templeId}/`);
+        let events = await response.json();
+
+        if (events.length === 0) {
+            eventList.style.display = "none";
+        } else {
+            eventList.style.display = "block";
+            events.forEach(event => {
+                let item = document.createElement("li");
+                item.innerHTML = `
+                    <span>
+                        ${event.date} - 
+                        ${event.event_type === "buddhist_day" ? "📌 วันพระ" : ""}
+                        ${event.event_type === "special_event" ? "⚠️ กิจนิมนต์" : ""}
+                        ${event.event_type === "weather" ? "🌧️ สภาพอากาศ" : ""}
+                        ${event.description} 
+                        ${event.is_canceled ? "(งดบิณฑบาต)" : ""}
+                    </span>
+                    <button onclick="deleteEvent(${event.id})" class="bg-red-500 text-white px-3 py-1 rounded">
+                        ลบ
+                    </button>
+                `;
+                eventList.appendChild(item);
+            });
+        }
+    } catch (error) {
+        console.error("❌ ไม่สามารถโหลดเหตุการณ์ได้:", error);
+    }
+}
+
+// ✅ ลบเหตุการณ์
+async function deleteEvent(eventId) {
+    console.log(`Attempting to delete event with ID: ${eventId}`);
+
+    if (!confirm("คุณแน่ใจหรือไม่ว่าต้องการลบเหตุการณ์นี้?")) return;
+
+    try {
+        let response = await fetch(`/api/events/${eventId}/delete/`, { method: "DELETE" });
+
+        if (response.ok) {
+            alert("✅ ลบเหตุการณ์เรียบร้อย!");
+            fetchEvents(); // โหลดเหตุการณ์ใหม่หลังจากลบ
+        } else {
+            alert("❌ ไม่สามารถลบเหตุการณ์ได้");
+        }
+    } catch (error) {
+        console.error("❌ เกิดข้อผิดพลาดขณะลบเหตุการณ์:", error);
+    }
 }
 
 async function fetchRoutes() {
@@ -120,17 +308,31 @@ async function fetchRoutes() {
             option.textContent = `${route.name} (เริ่ม ${route.start_time})`;
             select.appendChild(option);
 
-            // ✅ แสดงในรายการเส้นทาง
+            // ✅ สร้างรายการเส้นทาง
             let routeItem = document.createElement("div");
-            routeItem.classList.add("flex", "justify-between", "items-center", "border", "p-2", "rounded-md", "mt-2");
+            routeItem.classList.add("border", "p-3", "rounded-md", "mt-2", "bg-gray-50");
+
             routeItem.innerHTML = `
-                <span>${route.name} (เริ่ม ${route.start_time})</span>
-                <button onclick="deleteRoute(${route.id})" class="bg-red-500 text-white px-3 py-1 rounded">
-                    ลบ
-                </button>
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                    <div>
+                        <label>ชื่อเส้นทาง:</label>
+                        <input type="text" value="${route.name}" id="route_name_${route.id}" class="border p-1 rounded-md w-full">
+                        เวลาเริ่ม:
+                        <input type="time" value="${route.start_time}" id="start_time_${route.id}" class="border p-1 rounded-md ml-2">
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="updateStartTime(${route.id})" class="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600">
+                            บันทึกเวลา
+                        </button>
+                        <button onclick="deleteRoute(${route.id})" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">
+                            ลบ
+                        </button>
+                    </div>
+                </div>
             `;
             routeList.appendChild(routeItem);
         });
+
 
         console.log("✅ โหลดเส้นทางสำเร็จ", routes);
     } catch (error) {
@@ -139,33 +341,48 @@ async function fetchRoutes() {
 }
 
 async function fetchTemples() {
-    let response = await fetch("/api/temples/");
-    let temples = await response.json();
+    try {
+        let response = await fetch("/api/temples/");
+        let temples = await response.json();
 
-    let select = document.getElementById("temple_select");
-    let selectNewRoute = document.getElementById("new_route_temple");
-    let templeList = document.getElementById("temple_list");
+        let select = document.getElementById("temple_select");
+        let selectNewRoute = document.getElementById("new_route_temple");
+        let templeList = document.getElementById("temple_list");
 
-    select.innerHTML = `<option value="">-- กรุณาเลือกวัด --</option>`;
-    selectNewRoute.innerHTML = `<option value="">-- กรุณาเลือกวัด --</option>`;
-    templeList.innerHTML = "";
+        select.innerHTML = `<option value="">-- กรุณาเลือกวัด --</option>`;
+        selectNewRoute.innerHTML = `<option value="">-- กรุณาเลือกวัด --</option>`;
+        templeList.innerHTML = "";
 
-    temples.forEach(temple => {
-        let option = document.createElement("option");
-        option.value = temple.id;
-        option.textContent = temple.name;
-        select.appendChild(option);
-        selectNewRoute.appendChild(option.cloneNode(true));
+        temples.forEach(temple => {
+            let option = document.createElement("option");
+            option.value = temple.id;
+            option.textContent = temple.name;
+            select.appendChild(option);
+            selectNewRoute.appendChild(option.cloneNode(true));
 
-        let templeItem = document.createElement("div");
-        templeItem.classList.add("flex", "justify-between", "items-center", "border", "p-2", "rounded-md", "mt-2");
-        templeItem.innerHTML = `
-            <span>${temple.name}</span>
-            <button onclick="deleteTemple(${temple.id})" class="bg-red-500 text-white px-3 py-1 rounded">ลบ</button>
-        `;
-        templeList.appendChild(templeItem);
-    });
+            let templeItem = document.createElement("div");
+            templeItem.classList.add("flex", "justify-between", "items-center", "border", "p-2", "rounded-md", "mt-2");
+
+            // ✅ ตรวจสอบสิทธิ์ว่าแสดงปุ่มลบหรือไม่ (Admin หรือเจ้าของวัด)
+            let deleteButton = "";
+            if (temple.created_by == CURRENT_USER_ID || IS_SUPERUSER) {
+                deleteButton = `
+                    <button onclick="deleteTemple(${temple.id})" 
+                        class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-700">
+                        ลบ
+                    </button>`;
+            }
+
+            templeItem.innerHTML = `<span>${temple.name}</span> ${deleteButton}`;
+            templeList.appendChild(templeItem);
+        });
+    } catch (error) {
+        console.error("❌ ไม่สามารถโหลดวัด:", error);
+    }
 }
+
+
+
 
 async function addTemple() {
     let name = document.getElementById("temple_name").value;
@@ -179,7 +396,10 @@ async function addTemple() {
     let response = await fetch("/api/temples/add/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name, location: location })
+        body: JSON.stringify({
+            name: name,
+            location: location
+        })
     });
 
     if (response.ok) {
@@ -192,6 +412,7 @@ async function addTemple() {
         alert(`❌ ไม่สามารถเพิ่มวัดได้: ${errorData.error || "เกิดข้อผิดพลาด"}`);
     }
 }
+
 
 async function deleteTemple(templeId) {
     if (!confirm("คุณแน่ใจหรือไม่ว่าต้องการลบวัดนี้?")) return;
@@ -299,7 +520,7 @@ async function addCheckpoint(lat, lon) {
 
 function addCheckpointOnMap(lat, lon, name, id, travel_time) {
     if (!name) { 
-        name = `Checkpoint ${checkpointMarkers.length + 1}`; // ✅ ตั้งชื่อสำรองถ้าไม่มีชื่อ
+        name = `Checkpoint ${checkpointMarkers.length + 1}`; // 
     }
 
     let marker = L.marker([lat, lon], {
@@ -355,7 +576,7 @@ function addCheckpointToTable(id, name, lat, lon, travel_time) {
         <td class="border border-gray-400 p-2"><input type="text" value="${name}" class="border p-1 rounded-md"></td>
         <td class="border border-gray-400 p-2"><input type="text" value="${lat}" class="border p-1 rounded-md"></td>
         <td class="border border-gray-400 p-2"><input type="text" value="${lon}" class="border p-1 rounded-md"></td>
-        <td class="border border-gray-400 p-2"><input type="number" value="${travel_time}" class="border p-1 rounded-md"></td>
+        <td class="border border-gray-400 p-2"><input type="number" value="${travel_time}" min="0" class="border p-1 rounded-md"></td>
         <td class="border border-gray-400 p-2">
             <button onclick="deleteCheckpoint(${id})" class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 rounded">
                 ลบ
@@ -394,32 +615,35 @@ async function saveAllCheckpoints() {
     }
 
     let tableRows = document.querySelectorAll("#checkpoints_table tr");
-    let updatedCheckpoints = Array.from(tableRows).map(row => {
+    let updatedCheckpoints = Array.from(tableRows).map((row, index) => {
         let id = row.dataset.id ? parseInt(row.dataset.id) : null;
         let name = row.querySelector("td:nth-child(1) input").value;
         let lat = parseFloat(row.querySelector("td:nth-child(2) input").value);
         let lon = parseFloat(row.querySelector("td:nth-child(3) input").value);
-        let travel_time = parseInt(row.querySelector("td:nth-child(4) input").value); 
+        let travel_time = parseInt(row.querySelector("td:nth-child(4) input").value);
+
+        // ❌ ตรวจสอบว่า travel_time ห้ามติดลบ
+        if (travel_time < 0 || isNaN(travel_time)) {
+            alert(`❌ เวลาเดินทางต้องไม่ติดลบ (แถวที่ ${index + 1})`);
+            throw new Error("Invalid travel_time");
+        }
 
         return { id, name, lat, lon, travel_time };
     });
 
     for (let cp of updatedCheckpoints) {
         if (cp.id) {
-            // ✅ ส่งค่าที่แก้ไขไปยังเซิร์ฟเวอร์
             await fetch(`/api/checkpoints/${cp.id}/update/`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(cp)
             });
         } else {
-            // ✅ กรณีเป็น Checkpoint ใหม่
             let response = await fetch(`/api/routes/${currentRouteId}/checkpoints/add/`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(cp)
             });
-
             let savedCheckpoint = await response.json();
             cp.id = savedCheckpoint.id;
         }
@@ -428,7 +652,29 @@ async function saveAllCheckpoints() {
     alert("✅ บันทึก Checkpoints ทั้งหมดเรียบร้อย!");
     fetchCheckpoints();
 }
+async function updateStartTime(routeId) {
+    const newName = document.getElementById(`route_name_${routeId}`).value;
 
+    if (!newName) {
+        alert("❌ กรุณากรอกชื่อเส้นทาง");
+        return;
+    }
+
+    let response = await fetch(`/api/routes/${routeId}/update/`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newName })
+    });
+
+    let result = await response.json();
+
+    if (response.ok) {
+        alert("✅ อัปเดตชื่อเส้นทางเรียบร้อย!");
+        fetchRoutes();
+    } else {
+        alert(`❌ ไม่สามารถอัปเดตชื่อได้: ${result.error || "เกิดข้อผิดพลาด"}`);
+    }
+}
 
 </script>
 

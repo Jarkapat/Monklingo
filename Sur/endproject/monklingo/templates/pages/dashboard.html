@@ -69,23 +69,54 @@
     }
 </style>
 
+
 <div class="mx-auto py-6 px-4 ml-10">
-    <!-- แถวที่ 1: การ์ด -->
     <div class="grid grid-cols-6 gap-6 mb-6">
-        <!-- การ์ด: ผู้ใช้งานวันนี้ -->
-        <div class="dashboard-card col-start-1 col-end-4">
+        <div class="dashboard-card col-start-1 col-end-3">
             <p class="text-lg font-semibold noto">ผู้ใช้เข้าสู่ระบบวันนี้:</p>
             <h1 class="text-5xl font-bold mt-2 text-yellow-600 noto">{{ users_today }} คน</h1>
         </div>
-
-        <!-- การ์ด: ผู้ที่ถ่ายรูปวันนี้ -->
-        <div class="dashboard-card col-start-4 col-end-7">
+        <div class="dashboard-card col-start-3 col-end-5">
             <p class="text-lg font-semibold noto">ผู้ที่ถ่ายรูปวันนี้:</p>
             <h1 class="text-5xl font-bold mt-2 text-yellow-600 noto">{{ photos_today }} คน</h1>
         </div>
+        <div class="dashboard-card col-start-5 col-end-7">
+            <p class="text-lg font-semibold noto">จำนวนผู้ใช้ทั้งหมด:</p>
+            <h1 class="text-5xl font-bold mt-2 text-yellow-600 noto">{{ users_total }} คน</h1>
+        </div>
+        <div class="dashboard-card col-start-1 col-end-4">
+            <p class="text-lg font-semibold noto">จำนวนบทสวดทั้งหมด:</p>
+            <h1 class="text-5xl font-bold mt-2 text-yellow-600 noto">{{ total_prayers }} บท</h1>
+        </div>
+        <div class="dashboard-card col-start-4 col-end-7">
+            <p class="text-lg font-semibold noto">ผู้ใช้ที่สมัครวันนี้:</p>
+            <h1 class="text-5xl font-bold mt-2 text-yellow-600 noto">{{ users_registered_today }} คน</h1>
+        </div>
     </div>
-
-    <!-- แถวที่ 2: กราฟ -->
+    <div class="bg-white shadow-md rounded-lg p-6 mb-6 text-center">
+        <h2 class="text-lg font-bold mb-4">🔥 อันดับ 1 ของตอนนี้</h2>
+    
+        {% if top_user %}
+            <div class="flex flex-col items-center">
+                {% if top_user.profile_picture %}
+                    <img src="{{ top_user.profile_picture }}" alt="Profile Picture" 
+                         class="w-24 h-24 rounded-full border-4 border-yellow-500 shadow-md">
+                {% else %}
+                    <div class="w-24 h-24 flex items-center justify-center rounded-full border-4 border-yellow-500 shadow-md bg-gray-200">
+                        <span class="text-4xl text-gray-600">👤</span>
+                    </div>
+                {% endif %}
+                
+                <h3 class="text-xl font-semibold mt-3">{{ top_user.username }}</h3>
+                <p class="text-gray-500 text-sm">อัปโหลดไปแล้ว {{ top_user.photo_count }} รูป</p>
+            </div>
+            <p class="text-gray-400 mt-3 italic">
+                และยังมีผู้ใช้ {{ total_competitors }} คน กำลังแข่งขันกัน!
+            </p>
+        {% else %}
+            <p class="text-gray-500">ยังไม่มีข้อมูลอันดับ</p>
+        {% endif %}
+    </div>    
     <div class="bg-white shadow-md rounded-lg p-6 mb-6 noto">
         <h2 class="text-lg font-bold mb-4 noto">สรุปผู้ใช้อัปโหลดรูปประจำเดือน</h2>
 
@@ -104,51 +135,31 @@
         <div id="userChart" style="width: 100%; height: 400px;"></div>
         {% else %}
         <p class="alert">ไม่มีข้อมูลสำหรับเดือนที่เลือก</p>
-        <script>
-            console.log("Photo Summary Debug:", '{{ photo_summary|safe }}');
-            console.log("Alert: No data for the selected month.");
-        </script>
         {% endif %}
-
-        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-        <script>
-            const photoSummary = JSON.parse('{{ photo_summary|safe }}');
-            console.log("Photo Summary:", photoSummary);
-
-            const labels = photoSummary.map(item => item.uploaded_date); // ใช้เฉพาะวัน
-            const data = photoSummary.map(item => item.total_photos);
-
-            Plotly.newPlot('userChart', [{
-                x: labels,
-                y: data,
-                mode: 'lines+markers',
-                type: 'scatter',
-            }], {
-                title: 'จำนวนรูปภาพที่อัปโหลดในแต่ละวัน',
-                xaxis: { 
-                    title: 'วันที่',
-                    type: 'category',  // บังคับให้แสดงเป็นข้อความ
-                    tickmode: 'linear',
-                },
-                yaxis: { 
-                    title: 'จำนวนรูป', 
-                    tickmode: 'linear',
-                    dtick: 1,
-                    tickformat: '.0f',
-                },
-            });
-        </script>
-        
     </div>
-    <div id="imageModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex justify-center items-center hidden">
-        <div class="bg-white p-4 rounded-lg shadow-lg w-1/2 relative">
-            <button id="closeModal" class="absolute top-2 right-4 text-gray-700 text-lg font-bold">&times;</button>
-            <img id="modalImage" src="" class="w-full h-auto rounded-lg" alt="Uploaded Image">
-        </div>
+
+    <div class="bg-white shadow-md rounded-lg p-6 mb-6">
+        <h2 class="text-lg font-bold mb-4">ความถี่เวลาที่ผู้ใช้อัปโหลดรูป</h2>
+        <canvas id="histogramChart"></canvas>
     </div>
-    <!-- แถวที่ 3: ตารางข้อมูล -->
+
+
+    {% if request.user.is_superuser or request.user.is_staff %}
     <div class="bg-white p-6 noto">
         <h2 class="text-lg font-bold mb-4">ผู้ส่งรูปการตักบาตร</h2>
+
+        <!-- ✅ ฟอร์มเลือกวันที่ -->
+        <form method="GET" action="" class="mb-4 flex space-x-4 items-center">
+            <label for="date" class="font-bold text-lg">เลือกวันที่:</label>
+            <select name="date" id="date" class="border border-gray-300 rounded px-4 py-2" onchange="this.form.submit()">
+                {% for date in available_dates %}
+                    <option value="{{ date|date:'Y-m-d' }}" {% if date|date:'Y-m-d' == selected_date %}selected{% endif %}>
+                        {{ date|date:"d/m/Y" }}
+                    </option>
+                {% endfor %}
+            </select>
+        </form>
+
         <div class="overflow-x-auto bg-yellow-100 rounded-lg shadow-lg">
             <table class="w-full table-auto">
                 <thead>
@@ -169,39 +180,125 @@
                             <a href="#" class="text-blue-500 hover:underline openModal" data-image="{{ image.image.url }}">ดู</a>
                         </td>                        
                     </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="p-4 text-center text-gray-500">ไม่มีรูปในวันนี้</td>
+                    </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
+    {% endif %}
 </div>
+
+<!-- ✅ ใช้ Plotly เวอร์ชันใหม่ -->
+<script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-matrix"></script>
+
 <script>
     document.addEventListener("DOMContentLoaded", function () {
+        console.log("📊 Photo Summary:", JSON.parse('{{ photo_summary|safe }}'));
+        console.log("📊 Histogram Data:", JSON.parse('{{ histogram_summary|safe }}'));
+
+        // ✅ Line Graph (Plotly)
+        const photoSummary = JSON.parse('{{ photo_summary|safe }}');
+        const labels = photoSummary.map(item => item.uploaded_date);
+        const data = photoSummary.map(item => item.total_photos);
+
+        Plotly.newPlot('userChart', [{
+            x: labels,
+            y: data,
+            mode: 'lines+markers',
+            type: 'scatter',
+            marker: { size: 6, }
+        }], {
+            title: 'จำนวนรูปภาพที่อัปโหลดในแต่ละวัน',
+            xaxis: { title: 'วันที่', type: 'category', tickmode: 'linear' },
+            yaxis: { title: 'จำนวนรูป', tickmode: 'linear', dtick: 1, tickformat: '.0f' }
+        });
+
+        // ✅ Histogram (Chart.js)
+        const histogramData = JSON.parse('{{ histogram_summary|safe }}');
+        const ctxHistogram = document.getElementById("histogramChart")?.getContext("2d");
+
+        if (ctxHistogram) {
+            new Chart(ctxHistogram, {
+                type: "bar",
+                data: {
+                    labels: histogramData.map(item => item.uploaded_time),
+                    datasets: [{
+                        label: "จำนวนรูปที่อัปโหลด",
+                        data: histogramData.map(item => item.total_photos),
+                        backgroundColor: "rgba(54, 162, 235, 0.7)",
+                        borderColor: "rgba(54, 162, 235, 1)",
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: { title: { display: true, text: "เวลา" } },
+                        y: { 
+                            title: { display: true, text: "จำนวนรูป" }, 
+                            beginAtZero: true,
+                            ticks: { stepSize: 1, precision: 0 }  // ✅ กำหนดให้ y-axis เป็นจำนวนเต็ม
+                        }
+                    }
+                }
+            });
+        }
+
+        // ✅ อัปเดตทั้งสองกราฟเมื่อเลือกเดือน
+        document.getElementById("month").addEventListener("change", function () {
+            this.form.submit();
+        });
+
+        // ✅ เปิด-ปิด Modal ดูรูปภาพ
         const modal = document.getElementById("imageModal");
         const modalImage = document.getElementById("modalImage");
         const closeModal = document.getElementById("closeModal");
 
-        // ค้นหาลิงก์ทั้งหมดที่มี class="openModal"
-        document.querySelectorAll(".openModal").forEach(link => {
-            link.addEventListener("click", function (event) {
-                event.preventDefault(); // ป้องกันการเปลี่ยนหน้า
-                const imageUrl = this.getAttribute("data-image"); // ดึง URL รูป
-                modalImage.src = imageUrl;
-                modal.classList.remove("hidden"); // แสดงป๊อปอัพ
+        if (modal && modalImage && closeModal) {
+            document.querySelectorAll(".openModal").forEach(link => {
+                link.addEventListener("click", function (event) {
+                    event.preventDefault();
+                    modalImage.src = this.getAttribute("data-image");
+                    modal.classList.remove("hidden");
+                });
             });
-        });
 
-        // ปิดป๊อปอัพเมื่อคลิกปุ่มปิด
-        closeModal.addEventListener("click", function () {
-            modal.classList.add("hidden");
-        });
-
-        // ปิดป๊อปอัพเมื่อคลิกนอก modal
-        modal.addEventListener("click", function (event) {
-            if (event.target === modal) {
+            closeModal.addEventListener("click", function () {
                 modal.classList.add("hidden");
-            }
-        });
+            });
+
+            modal.addEventListener("click", function (event) {
+                if (event.target === modal) {
+                    modal.classList.add("hidden");
+                }
+            });
+        }
     });
+    const dateDropdown = document.getElementById("date");
+        if (dateDropdown) {
+            dateDropdown.addEventListener("change", function () {
+                const selectedDate = this.value;
+                console.log("📅 วันที่ที่เลือก:", selectedDate);
+
+                // ✅ อัปเดต query string
+                const currentURL = new URL(window.location.href);
+                currentURL.searchParams.set("date", selectedDate);
+
+                // ✅ โหลดหน้าใหม่พร้อมวันที่ที่เลือก
+                window.location.href = currentURL.toString();
+            });
+        } else {
+            console.log("❌ ไม่พบ element <select id='date'>");
+        }
+
+    
 </script>
+
+
 {% endblock %}

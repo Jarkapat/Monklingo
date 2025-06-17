@@ -11,6 +11,7 @@
                 <p class="text-gray-700">{{ post.content|truncatechars:200 }}</p>
                 <p class="text-sm text-gray-500 mt-4">ประเภท: {{ post.get_post_type_display }}</p>
                 <p class="text-sm text-gray-500">โพสต์โดย: {{ post.author.username }}</p>
+                <p class="text-sm text-gray-500">อายุ: {{ post.age }}</p>
                 {% if post.img %}
                 <img src="{{ post.img.url }}" alt="{{ post.heading }}" class="w-full mt-4 rounded">
                 {% endif %}
@@ -27,7 +28,7 @@
                 </div>
                 {% endif %}
                 <p class="text-sm text-gray-500 mt-4">โพสต์เมื่อ: {{ post.date_time|date:"d F Y" }}</p>
-                {% if request.user.is_superuser %}
+                {% if request.user.is_superuser or request.user.is_staff %}
                 <div class="mt-4 flex space-x-4">
                     <!-- ปุ่มแก้ไข -->
                     <a href="{% url 'edit_news' post.news_id %}" 

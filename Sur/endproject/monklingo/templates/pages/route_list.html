@@ -1,11 +1,12 @@
 {% extends 'base/base.html' %}
 {% block main %}
 
-<<div class="flex-1 overflow-y-auto ml-[300px] mt-10">
+<div class="flex-1 overflow-y-auto ml-[300px] mt-10">
+    
     <!-- ✅ ส่วนค้นหาวัด -->
     <div class="bg-yellow-200 p-2 rounded-lg shadow-md mb-6 w-full sm:w-[1230px]">
       <label for="temple_select" class="block text-gray-800 noto font-medium mb-2">
-        ค้นหาวัดที่ต้องการ
+         เลือกวัดที่ต้องการ
       </label>
       <select id="temple_select" onchange="fetchRoutes()" 
         class="w-full sm:w-[1200px] border border-gray-300 rounded-lg focus:ring focus:ring-yellow-400 noto bg-white">
@@ -14,8 +15,13 @@
     </div>
     <!-- ✅ แผนที่ -->
     <div id="map" class="w-full sm:w-[1230px] h-[600px] border border-black rounded-lg shadow-lg mb-5 "></div>
+    <!-- ✅ Event จะแสดงตามวัดที่เลือก -->
+    <div id="event_list" class="hidden bg-red-300 text-center p-3 rounded-lg text-lg text-white sm:w-[1230px]">
+        <h2 class="text-lg font-semibold">📅 เหตุการณ์ของวันนี้</h2>
+        <ul id="events"></ul>
+    </div>
 
-    {% if request.user.is_superuser %}
+    {% if request.user.is_superuser or request.user.is_staff %}
     <!-- ✅ ปุ่ม "จัดการเส้นทาง" -->
     <div class="flex mt-3">
         <a href="/manage/routes" 
@@ -40,6 +46,17 @@
         }, 3000);  // ซ่อนแจ้งเตือนหลัง 3 วินาที
     </script>
 {% endif %}
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<!-- Routing Machine CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Routing Machine JS -->
+<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
@@ -51,12 +68,9 @@ let totalDistance = {};
 let totalTravelTime = {};
 let routeSegments = {};
 let routeStartTimes = {}; // ✅ เก็บเวลาเริ่มต้นของเส้นทาง
+let userMarker = null;
 
-window.onload = function () {
-    console.log("✅ Window fully loaded, initializing map...");
-    initMap();
-    fetchTemples();
-};
+
 
 function initMap() {
     map = L.map("map").setView([13.736717, 100.523186], 25);
@@ -64,7 +78,12 @@ function initMap() {
         attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 }
-
+window.onload = function () {
+    console.log("✅ Window fully loaded, initializing map...");
+    initMap();
+    getUserLocation();
+    fetchTemples();
+};
 // ✅ โหลดวัด
 async function fetchTemples() {
     try {
@@ -93,6 +112,7 @@ async function fetchRoutes() {
     let templeId = document.getElementById("temple_select").value;
     if (!templeId) {
         console.log("⚠️ กรุณาเลือกวัดก่อนโหลดเส้นทาง");
+        document.getElementById("event_list").classList.add("hidden");
         return;
     }
 
@@ -107,7 +127,7 @@ async function fetchRoutes() {
             routeStartTimes[route.id] = route.start_time; // ✅ เก็บเวลาเริ่มต้นของเส้นทาง
             loadCheckpoints(route.id);
         });
-
+        fetchEvents(templeId);
     } catch (error) {
         console.error("❌ Error fetching routes:", error);
     }
@@ -175,7 +195,7 @@ async function loadCheckpoints(routeId) {
                     iconSize: [30, 30],
                     iconAnchor: [20, 30],
                 })
-            }).bindPopup(`<b>${cp.name}</b><br>🕒 ถึงเวลา ${formattedTime}`).addTo(map);
+            }).bindPopup(`<b>${cp.name}</b><br>🕒 เวลา ${formattedTime}`).addTo(map);
 
             checkpointMarkers[routeId].push(marker);
             waypoints.push(L.latLng(cp.lat, cp.lon));
@@ -274,8 +294,74 @@ function moveMarkerAlongRoute(routeId, waypoints, startIndex) {
 
     moveToNextPoint();
 }
+function getUserLocation() {
+    if (!navigator.geolocation) {
+        console.error("❌ เบราว์เซอร์นี้ไม่รองรับ Geolocation");
+        return;
+    }
 
+    navigator.geolocation.watchPosition(
+        (position) => {
+            let userLat = position.coords.latitude;
+            let userLon = position.coords.longitude;
+            console.log(`📍 ตำแหน่งปัจจุบัน: ${userLat}, ${userLon}`);
 
+            if (userMarker) {
+                userMarker.setLatLng([userLat, userLon]);
+                console.log("🔄 อัปเดตตำแหน่ง userMarker");
+            } else {
+                userMarker = L.marker([userLat, userLon], {
+                    icon: L.icon({
+                        iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png", // ไอคอนผู้ใช้
+                        iconSize: [35, 35],
+                        iconAnchor: [17, 35],
+                    })
+                }).bindPopup("📍 ตำแหน่งของคุณ").addTo(map);
+                console.log("✅ userMarker ถูกสร้างบนแผนที่");
+            }
+        },
+        (error) => {
+            console.error("❌ ไม่สามารถอัปเดตตำแหน่ง:", error.message);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+}
+
+async function fetchEvents(templeId) {
+    try {
+        let response = await fetch(`/api/events/${templeId}/`);
+        let events = await response.json();
+        let eventList = document.getElementById("events");
+        let eventContainer = document.getElementById("event_list");
+
+        eventList.innerHTML = "";
+
+        if (events.length === 0) {
+            eventList.style.display = "none";
+        } else {
+            eventList.style.display = "block";
+            events.forEach(event => {
+                let item = document.createElement("li");
+                item.innerHTML = `
+                    <span>
+                        ${event.date} - 
+                        ${event.event_type === "วันพระ" ? "📌 วันพระ" : ""}
+                        ${event.event_type === "กิจนิมนต์" ? "⚠️ กิจนิมนต์" : ""}
+                        ${event.event_type === "สภาพอากาศ" ? "🌧️ สภาพอากาศ" : ""}
+                        ${event.description} 
+                        ${event.is_canceled ? "(งดบิณฑบาต)" : ""}
+                    </span>
+                `;
+                eventList.appendChild(item);
+            });
+        }
+
+        eventContainer.classList.remove("hidden"); // ✅ แสดง Event Container เมื่อมีข้อมูล
+
+    } catch (error) {
+        console.error("❌ ไม่สามารถโหลดเหตุการณ์ได้:", error);
+    }
+}
 </script>
 
 {% endblock %}

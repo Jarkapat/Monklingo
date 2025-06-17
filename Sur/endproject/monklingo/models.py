@@ -4,6 +4,7 @@ from django.utils.timezone import now
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.utils.timezone import timedelta, now, make_aware, datetime
+from datetime import date
 
 # Custom User Manager
 class UserProfileManager(BaseUserManager):
@@ -39,6 +40,7 @@ class UserProfileManager(BaseUserManager):
 # Custom User Model
 class CustomUser(AbstractUser):
     email = models.EmailField(max_length=255, blank=True,default="")
+    full_name = models.CharField(max_length=255, blank=True, null=True)
     profile_picture = models.ImageField(upload_to='profile_pics/', blank=True, null=True)
     google_id = models.CharField(max_length=255, blank=True, null=True, unique=True)
     facebook_id = models.CharField(max_length=255, blank=True, null=True, unique=True)
@@ -46,6 +48,10 @@ class CustomUser(AbstractUser):
     facebook_token = models.TextField(blank=True, null=True)  # Optional: For storing Facebook Token
     is_social_login = models.BooleanField(default=False)
     is_email_verified = models.BooleanField(default=False)
+    assigned_temple = models.OneToOneField(
+        "Temple", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="assigned_staff"
+    )
 
     objects = UserProfileManager()
 
@@ -55,6 +61,7 @@ class CustomUser(AbstractUser):
 class Temple(models.Model):
     name = models.CharField(max_length=255, unique=True, default="Unknown Temple")
     location = models.CharField(max_length=255, blank=True, null=True)  # เพิ่มที่ตั้งได้
+    created_by = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="temples")
 
     def __str__(self):
         return self.name
@@ -63,6 +70,7 @@ class Route(models.Model):
     name = models.CharField(max_length=255)  # ชื่อเส้นทาง
     start_time = models.TimeField()  # เวลาเริ่มต้นในแต่ละวัน  
     temple = models.ForeignKey(Temple, on_delete=models.CASCADE, related_name="routes", null=True, blank=True)  # เชื่อมกับ Temple
+    created_by = models.ForeignKey(CustomUser, on_delete=models.CASCADE,related_name="routes")
 
     def __str__(self):
         return f"{self.temple.name} - {self.name}"  # ✅ แสดงชื่อวัด + เส้นทาง
@@ -101,6 +109,7 @@ class NewsPost(models.Model):
     img = models.ImageField(upload_to='prayers_images/', blank=True, null=True)
     url = models.URLField(blank=True, null=True)
     author = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE)
+    age = models.TextField(null=True)
     TYPE_CHOICES = [
         ('news', 'News'),
         ('announcement', 'Announcement'),
@@ -128,7 +137,7 @@ CustomUser = get_user_model()
 class UserImage(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='user_images')
     image = models.ImageField(upload_to='user_images/')
-    uploaded_at = models.DateTimeField(auto_now_add=True)
+    uploaded_at = models.DateTimeField()
 
     def __str__(self):
         return f"{self.user.username} - {self.image.name}"
@@ -156,3 +165,31 @@ class Message(models.Model):
 
     def __str__(self):
         return f"Message from {self.sender.username} at {self.timestamp}"
+
+
+class Event(models.Model):
+    EVENT_TYPES = [
+        ('buddhist_day', 'วันพระ'),
+        ('special_event', 'กิจนิมนต์'),
+        ('weather', 'สภาพอากาศ'),
+        ('other', 'เหตุการณ์อื่นๆ'),
+    ]
+
+    temple = models.ForeignKey(Temple, on_delete=models.CASCADE)
+    date = models.DateField(default=now)  # วันที่ของ Event
+    event_type = models.CharField(max_length=20, choices=EVENT_TYPES)  # ประเภทของ Event
+    description = models.CharField(max_length=255)  # คำอธิบาย
+    is_canceled = models.BooleanField(default=False)  # กรณีงดบิณฑบาต
+
+    class Meta:
+        unique_together = ('temple', 'date') 
+
+    def __str__(self):
+        status = " (งดบิณฑบาต)" if self.is_canceled else ""
+        return f"{self.date}: {self.get_event_type_display()} - {self.description}{status}"
+
+    @classmethod
+    def get_today_events(cls):
+        """ คืนค่ากิจกรรมของวันนี้ """
+        today = date.today()
+        return cls.objects.filter(date=today).order_by('event_type')

@@ -62,23 +62,25 @@
         const alertContainer = document.getElementById("alertContainer");
         const alertMessage = document.getElementById("alertMessage");
 
-        // ตรวจสอบว่าผู้ใช้ถ่ายรูปวันนี้แล้วหรือยัง
+        // ✅ ตรวจสอบว่าผู้ใช้ถ่ายรูปวันนี้แล้วหรือยัง และอยู่ในช่วงเวลาหรือไม่
         const response = await fetch("{% url 'check_daily_photo' %}");
         const data = await response.json();
 
         if (data.has_taken_photo) {
-            lockCaptureButton();
+            lockCaptureButton("คุณสามารถถ่ายรูปได้วันละครั้ง");
+        } else if (!data.is_within_time_range) {
+            lockCaptureButton("สามารถถ่ายรูปได้เฉพาะช่วงเวลา 05:00 - 08:00 น.");
         } else {
             captureButton.addEventListener("click", function () {
                 window.location.href = "/capture/"; // ไปหน้าถ่ายรูป
             });
         }
 
-        // ฟังก์ชันล็อกปุ่ม
-        function lockCaptureButton() {
+        // ✅ ฟังก์ชันล็อกปุ่ม
+        function lockCaptureButton(message) {
             captureButton.disabled = true;
             captureButton.classList.add("opacity-50", "cursor-not-allowed", "bg-gray-400");
-            captureButton.textContent = "คุณสามารถถ่ายรูปได้วันละครั้ง";
+            captureButton.textContent = message;
         }
 
         // ฟังก์ชันแสดงแจ้งเตือน

@@ -6,6 +6,9 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import login
 from django.utils.text import slugify
 import random
+from django.contrib.auth import get_user_model
+from django.db import IntegrityError
+
 
 class MyAccountAdapter(DefaultAccountAdapter):
     """
@@ -43,29 +46,52 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
 
     def pre_social_login(self, request, sociallogin):
         """
-        ตรวจสอบว่าผู้ใช้มี username หรือยัง ถ้ายังให้กำหนดอัตโนมัติ
+        ตรวจสอบว่าผู้ใช้มีบัญชีอยู่แล้วหรือไม่ก่อนสร้างใหม่
         """
         user = sociallogin.user
+        User = get_user_model()
 
-        # ✅ ตรวจสอบว่ามี username หรือยัง
+        # ✅ ตรวจสอบว่าผู้ใช้ล็อกอินด้วยอีเมล และมีอีเมลใน social login หรือไม่
+        if not user.email:
+            return  # ❌ ไม่มีอีเมล ไม่สามารถตรวจสอบได้
+
+        try:
+            # ✅ ค้นหาผู้ใช้ที่มี email นี้ในระบบ
+            existing_user = User.objects.get(email=user.email)
+            
+            # ✅ เชื่อมโยงบัญชี Social กับบัญชีเดิม
+            sociallogin.connect(request, existing_user)
+            
+            # ✅ กำหนดให้ล็อกอินเป็นบัญชีเดิม
+            user.backend = 'allauth.account.auth_backends.AuthenticationBackend'
+            login(request, existing_user, backend=user.backend)
+            return
+        
+        except User.DoesNotExist:
+            pass  # ✅ ถ้ายังไม่มีบัญชี ก็ให้ดำเนินการสมัครปกติ
+        
+        # ✅ ถ้ายังไม่มี username ให้สร้างใหม่อัตโนมัติ
         if not user.username:
             base_username = slugify(user.email.split("@")[0])  # ใช้ email prefix เป็น username
             user.username = base_username
 
-            # ✅ ตรวจสอบว่าซ้ำหรือไม่
-            from django.contrib.auth import get_user_model
-            User = get_user_model()
+            # ✅ ตรวจสอบ username ซ้ำ
             counter = 1
             while User.objects.filter(username=user.username).exists():
                 user.username = f"{base_username}{counter}"
                 counter += 1
 
-        # ✅ ตรวจสอบว่าผู้ใช้มี Primary Key หรือยัง
+        # ✅ บันทึกผู้ใช้ใหม่
         if not user.pk:
-            user.save()  # 🔹 บันทึก user ลงฐานข้อมูลก่อน
+            try:
+                user.save()
+            except IntegrityError:
+                pass  # ป้องกันข้อผิดพลาดหากบันทึกซ้ำ
 
-        user.backend = 'allauth.account.auth_backends.AuthenticationBackend'  # ✅ กำหนด Backend
-        login(request, user, backend=user.backend)  # ✅ ล็อกอิน 
+        # ✅ กำหนด Backend และล็อกอิน
+        user.backend = 'allauth.account.auth_backends.AuthenticationBackend'
+        login(request, user, backend=user.backend)
+
 
     def get_connect_redirect_url(self, request, socialaccount):
         """

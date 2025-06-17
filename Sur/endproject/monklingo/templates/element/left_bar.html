@@ -12,6 +12,13 @@
             <h2 class="text-4xl font-bold text-[#E2A226] mb-8 text-center baloo-bhai mt-5">Monklingo</h2>
         </a>
         <ul class="space-y-4">
+            <!-- เมนูเพิ่มเติมสำหรับ Superuser -->
+            
+            <a href="/dashboard" class="flex items-center text-black hover:text-yellow-500">
+                <i class="fi fi-rs-chart-pie icon-medium mr-2"></i>
+                <span class="text-black noto text-2xl hover:text-yellow-500">แดชบอร์ด</span>
+            </a>
+            
             <!-- เส้นทาง -->
             <a href="/routes" class="flex items-center text-black hover:text-yellow-500">
                 <i class="fi fi-rr-compass-alt icon-medium mr-2"></i>
@@ -41,20 +48,14 @@
                 <i class="fi fi-rr-beacon icon-medium mr-2"></i>
                 <span class="text-black noto text-2xl hover:text-yellow-500">แชท</span>
             </a>
-
-            <!-- เมนูเพิ่มเติมสำหรับ Superuser -->
-            {% if request.user.is_superuser %}
+            
+            {% if request.user.is_superuser or request.user.is_staff %}
             <a href="/user" class="flex items-center text-black hover:text-yellow-500">
                 <i class="fi fi-rs-user icon-medium mr-2"></i>
                 <span class="text-black noto text-2xl hover:text-yellow-500">ผู้ใช้งาน</span>
             </a>
-
-            <a href="/dashboard" class="flex items-center text-black hover:text-yellow-500">
-                <i class="fi fi-rs-chart-pie icon-medium mr-2"></i>
-                <span class="text-black noto text-2xl hover:text-yellow-500">แดชบอร์ด</span>
-            </a>
             {% endif %}
-
+            
             <!-- ตั้งค่า -->
             <a href="/setting" class="flex items-center text-black hover:text-yellow-500">
                 <i class="fi fi-rr-settings icon-medium mr-2"></i>
