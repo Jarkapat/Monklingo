@@ -34,7 +34,7 @@ ALLOWED_HOSTS = [
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://0730-49-229-22-67.ngrok-free.app",
+    "https://80ec9e613250.ngrok-free.app",
 ]
 
 
@@ -50,7 +50,6 @@ INSTALLED_APPS = [
     'tailwind',
     'monklingo',
     'theme',
-    'django.contrib.gis',
     'django.contrib.sites',
     'allauth',
     'allauth.account',
@@ -112,11 +111,11 @@ WSGI_APPLICATION = "endproject.wsgi.application"
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'mkdb',
-        'USER': 'postgres',
-        'PASSWORD': '1234',  # เปลี่ยนเป็นรหัสผ่านจริง
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'NAME': os.environ.get('DJANGO_DB_NAME', 'mkdb'),
+        'USER': os.environ.get('DJANGO_DB_USER', 'postgres'),
+        'PASSWORD': os.environ.get('DJANGO_DB_PASSWORD', '1234'),
+        'HOST': os.environ.get('DJANGO_DB_HOST', 'db'),
+        'PORT': os.environ.get('DJANGO_DB_PORT', '5432'),
     }
 }
 
@@ -160,7 +159,7 @@ STATICFILES_DIRS = [
     BASE_DIR / "static",  # กำหนดโฟลเดอร์ที่เก็บไฟล์ static
 ]
 
-
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
@@ -227,8 +226,8 @@ CHANNEL_LAYERS = {
     },
 }
 
-# บังคับใช้ HTTPS
-SECURE_SSL_REDIRECT = True
+#บังคับใช้ HTTPS
+SECURE_SSL_REDIRECT = False
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https') 
