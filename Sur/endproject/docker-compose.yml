@@ -25,6 +25,7 @@ services:
       - ./staticfiles:/app/staticfiles
     command: >
       sh -c "python manage.py migrate &&
+             python manage.py loaddata data.json &&
              python manage.py collectstatic --noinput &&
              gunicorn endproject.wsgi:application --bind 0.0.0.0:8000"
     ports:
